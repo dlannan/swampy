@@ -17,4 +17,4 @@ WORKDIR    /var/www/html
 
 ADD         ./swampy swampy-server
 
-CMD         cd ss-server; pwd; ./luvit app/httpsserver.lua
+CMD         cd swampy-server; pwd; ./luvit app/httpsserver.lua
