@@ -12,7 +12,7 @@ Feature wise it is quite light, but it is also very capable.
 
 To jump in and just run SWAMPY do the following:
 
-1. Generate some keys for the SSL keys for the server. These are put into the keys folder.
+1. Generate some SSL keys for the server. These are put into the keys folder (current keys are empty files!).
 2. Run the command: ```./luvit /apps/httpserver.lua```
 
 Thats it. When running in this mode you will see all the logging from the server.
