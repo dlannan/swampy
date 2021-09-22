@@ -10,7 +10,7 @@ Luvit - it's a lightweight implementation of Lua programming language, using the
 Read the official documentation to learn more.
 
 Before starting swampy make sure you have installed your SSL keys in swampy/swampy/keys folder.
-You should have a a fullkeychain.pem, a cert.pem and a privkey.key. 
+You should have a fullkeychain.pem, a cert.pem and a privkey.key. 
 If you use letsencrypt you can easily generate these.
 
 To start swampy using docker-compose:
