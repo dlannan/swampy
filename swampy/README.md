@@ -31,11 +31,11 @@ stack traceback:
         [string "bundle:deps/require.lua"]:310: in function <[string "bundle:deps/require.lua"]:266>
 ```
 
+## Admin 
+
 The first time you access the admin, it will use your login and password credentials and create 
 and admin account. At the moment, there is only 1 admin account. It does support as many as 
 you want, but there is no interface yet for it :)   (TBD!)
-
-## Admin 
 
 In the admin panel you wont be able to do much until you have a game module and players to examine. 
 There is still dummy data in the summary (I know, I know!!)
