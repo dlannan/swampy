@@ -32,7 +32,7 @@ stack traceback:
 ```
 
 The first time you access the admin, it will use your login and password credentials and create 
-and admin account. At the moment, there is only 1 admin account, but it does support as many as 
+and admin account. At the moment, there is only 1 admin account. It does support as many as 
 you want, but there is no interface yet for it :)   (TBD!)
 
 ## Admin 
