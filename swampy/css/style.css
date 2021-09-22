@@ -1,0 +1,190 @@
+body{
+  background: #f4f4f4;
+}
+
+/* navbar
+******************************************************/
+.navbar{
+  min-height: 33px !important;
+  margin-bottom: 0;
+  margin-top: 0;
+  border-radius: 0;
+}
+.navbar-nav > li > a, .navbar-brand{
+  padding-top: 8px !important;
+  padding-bottom: 0px !important;
+  height: 33px;
+}
+.navbar-default {
+  background-color: #507b58;
+  border-color: #507b58;
+}
+.navbar-default .navbar-brand {
+  color: #ecf0f1;
+}
+.navbar-default .navbar-brand:hover,
+.navbar-default .navbar-brand:focus {
+  color: #000000;
+}
+.navbar-default .navbar-text {
+  color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > a {
+  color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+  color: #000000;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu {
+  background-color: #507b58;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu > li > a {
+  color: #ecf0f1;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu > li > a:hover,
+.navbar-default .navbar-nav > li > .dropdown-menu > li > a:focus {
+  color: #000000;
+  background-color: #799163;
+}
+.navbar-default .navbar-nav > li > .dropdown-menu > li.divider {
+  background-color: #799163;
+}
+.navbar-default .navbar-nav .open .dropdown-menu > .active > a,
+.navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover,
+.navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {
+  color: #000000;
+  background-color: #799163;
+}
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus {
+  color: #000000;
+  background-color: #799163;
+}
+.navbar-default .navbar-nav > .open > a,
+.navbar-default .navbar-nav > .open > a:hover,
+.navbar-default .navbar-nav > .open > a:focus {
+  color: #000000;
+  background-color: #799163;
+}
+.navbar-default .navbar-toggle {
+  border-color: #799163;
+}
+.navbar-default .navbar-toggle:hover,
+.navbar-default .navbar-toggle:focus {
+  background-color: #799163;
+}
+.navbar-default .navbar-toggle .icon-bar {
+  background-color: #ecf0f1;
+}
+.navbar-default .navbar-collapse,
+.navbar-default .navbar-form {
+  border-color: #ecf0f1;
+}
+.navbar-default .navbar-link {
+  color: #ecf0f1;
+}
+.navbar-default .navbar-link:hover {
+  color: #000000;
+}
+
+/* customs styles
+******************************************************/
+.main-bgcolors{
+  background-color: #507b58 !important;
+  border-color: #507b58 !important;
+  color: #fff !important;
+}
+.glyphicon{
+  color: #507b58 !important;
+}
+
+/* header
+******************************************************/
+#header{
+  background: #540202;
+  color: #fff;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+#header .dropdown{
+  padding-top: 27px;
+}
+
+.breadcrumb{
+  background: #ccc;
+  color: #333;
+}
+.breadcrumb a{
+  color: #333;
+}
+
+.progress-bar{
+  background: #333;
+  color: #fff;
+}
+
+/* footer
+******************************************************/
+#footer{
+  background-color: #540202;
+  color: #fff;
+  text-align: center;
+  padding: 30px;
+  margin-top: 30px;
+}
+/* Media Queries
+******************************************************/
+@media (max-width: 767px) {
+  .navbar-default .navbar-nav .open .dropdown-menu > li > a {
+    color: #ecf0f1;
+  }
+  .navbar-default .navbar-nav .open .dropdown-menu > li > a:hover,
+  .navbar-default .navbar-nav .open .dropdown-menu > li > a:focus {
+    color: #000000;
+  }
+  .navbar-default .navbar-nav .open .dropdown-menu > .active > a,
+  .navbar-default .navbar-nav .open .dropdown-menu > .active > a:hover,
+  .navbar-default .navbar-nav .open .dropdown-menu > .active > a:focus {
+    color: #000000;
+    background-color: #799163;
+  }
+}
+
+
+.well {
+}
+
+.list-group {
+}
+
+.module-edit {
+  text-align: right;
+  position: absolute;
+  right: 20px;
+  top: 3px;
+  color: black;
+}
+
+#module-editor {
+  height: 260px;
+}
+
+.panel-body {
+  position: relative;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.game-modules {
+
+  height: 30vh;
+  overflow-y: scroll;
+}
+
+.game-module-detail {
+
+  height: 30vh;
+  overflow-y: scroll;
+}
