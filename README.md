@@ -26,7 +26,7 @@ $ docker-compose up -d
 
 The Swampy source code is in swampy/swampy.
 
-Being a luvit based system, it is entirely built from Web pages (mostly static) and lua.
+Being a luvit based system, SWAMPY is entirely built from Web pages (mostly static) and lua.
 
 ## License
   
