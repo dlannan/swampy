@@ -88,7 +88,7 @@ local run_exec  = nil       -- Helper for making running things easier with sql
 local SERVER_PORT     = 17000
 
 -- local SERVER_FILE     = ""    -- use this for in-mem db.
-local SERVER_FILE     = "./data/swampy.sqlite3"
+local SERVER_FILE     = "swampy"
 
 local SQLITE_TABLES   = {
 
@@ -134,6 +134,53 @@ local function writeAdmins()
 end 
 
 ---------------------------------------------------------------------------------
+-- Get the sqltables this game module uses - its for the admin and other
+local function initModuleSql( mod )
+
+    mod.gettables    = function() 
+
+        mod.sql.prevconn = sqlapi.getConn()
+        sqlapi.setConn(mod.sql.conn)
+        local jsontbl = {}
+        for k ,v in pairs(mod.sqltables) do
+            p(k)
+            local tbl = sqlapi.getTable( k, tablelimit )
+            jsontbl[k] = tbl
+        end
+        sqlapi.setConn(mod.sql.prevconn)
+        return json.encode(jsontbl)
+    end 
+end 
+
+---------------------------------------------------------------------------------
+
+local function initModule( mod )
+
+    mod.info    = {
+        name        = mod.name,
+        usercount   = 0,
+        gamecount   = 0, 
+        activity    = 0, 
+        dataread    = 0,
+        datawrite   = 0,
+        uptime      = 0,
+        lastupdate  = 0.0,
+    }
+
+    mod.data    = {
+        games   = {},     -- running games using this module
+        users   = {},     -- available logged in users
+        updates = {},     -- updates queued in order by timestamp sent
+    }
+
+    mod.sql = {}   
+    mod.sql.prevconn = sqlapi.getConn()
+    mod.sql.conn = sqlapi.init(mod.name, mod.sqltables)
+    sqlapi.checkTables( mod.sqltables )
+    sqlapi.setConn(mod.sql.prevconn)
+
+    initModuleSql(mod)
+end 
 
 local function init( varg )
 
@@ -161,27 +208,25 @@ local function init( varg )
             p("[Sqlite DB Error] ", server.apitokens)
         end 
 
-        local modstr = utils.ls("lua/modules")
-        p(modstr)
-        
+        local modstr = utils.ls("lua/modules")       
         local modules = utils.split(modstr, "\n")
-        p(modules)
 
         for k,v in ipairs(modules) do 
 
             if(v ~= '') then 
                 -- Try requiring the module
-                local ismod = require("lua.modules."..v)
+                local basename = string.match(v, "^(.*).lua")
+                local ismod = require("lua.modules."..basename)
                 if(ismod.name) then 
-                    server.modules[ismmod.name] = ismod 
+                    server.modules[ismod.name] = ismod 
                 end
             end
         end 
     end 
 
     for k, module in pairs(server.modules) do 
-        if(module) then 
-            module.init(module) 
+        if(module and module ~= "swampy") then 
+            initModule(module) 
         end 
     end
 end
@@ -564,6 +609,7 @@ end
 ---------------------------------------------------------------------------------
 -- MODULES
 ---------------------------------------------------------------------------------
+-- Currently very manual - this will be moved to a thread per module.
 
 local function updateModules()
 
@@ -600,6 +646,7 @@ local function updateModules()
         server.info.diskusage = tonumber(string.match(output, "^(%d+)"))
 
         server.game_check = GAME_CHECK_TIMEOUT
+
         for k, module in pairs(server.modules) do 
             if(module) then
                 sqlapi.setModuleInfo(module.info)

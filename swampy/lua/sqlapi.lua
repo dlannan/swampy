@@ -49,8 +49,11 @@ local function checkTables( tbls )
 end
 
 ---------------------------------------------------------------------------------
-local function init( filename, tbls )
+local function init( filelabel, tbls )
 
+    if(filelabel == nil) then return nil end
+    local filename = "./data/"..filelabel..".sqlite3"
+    p("[Sql file] ", filename)
     -- If filename is provided a new connection is made and set
     if(filename) then thisconn = sql.open(filename) end 
     if(thisconn == nil) then 
@@ -88,10 +91,19 @@ end
 
 local function getTable( name, limit )
 
+    if(name == nil) then 
+        p("[Sql GetTable Error] No table anme provided.")
+        return {}
+    end 
+
     local sqlcmd = [[SELECT * FROM ]]..name..[[; ]]
 
     local jsontbl = {}
     local tbl, rowcount = conn:exec(sqlcmd)
+    if(rowcount == 0 or tbl == nil) then 
+        p("[Sql GetTable Error] No rows.")
+        return {} 
+    end
 
     local cols = tbl[0]
     for row = 1, rowcount do
