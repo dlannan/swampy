@@ -69,6 +69,8 @@ local server    = {
 
     -- Specific users for administration of swampi
     admins          = {},
+    -- Logged in admins - if they are not in here, then they need to log again
+    ipadmins        = {},
 
     apitokens       = {},    -- API tokens used for access - each game module gets one
     bearertokens    = {},    -- successful login and assignment token
@@ -139,6 +141,7 @@ local function init( varg )
         os.execute("rm "..SERVER_FILE)
     else
         server.admins = readAdmins() or {}
+        if(server.admins == nil) then server.admins = {} end
         p(server.admins)
     end
 
@@ -197,6 +200,24 @@ end
 -- USER LOGIN
 ---------------------------------------------------------------------------------
 
+
+local function getpwtoken( useremail, password )
+
+    -- Gen an initial id from useremail and password - aes crypt is nice.
+    local pwtoken = aes.ECB_256(aes.encrypt, KEY, useremail..password..GBG)
+    return pwtoken --string.gsub(pwtoken, "%W", "")
+end
+
+---------------------------------------------------------------------------------
+
+local function getAdminToken( useremail, pwtoken )
+
+    local token =  aes.ECB_256(aes.encrypt, KEY, useremail..GBG..pwtoken)
+    return string.gsub(token, "%W", "")
+end 
+
+---------------------------------------------------------------------------------
+
 local function checkAPIToken( token )
     -- TODO - this needs to check server.apitokens list
     --        They can only be added in the admin console. No code methods here
@@ -241,10 +262,18 @@ end
 local function logoutAdminToken( client, useremail, password )
 
     -- Check ip+port lookup. This is our "connected" user.
-    local admintoken =  aes.ECB_256(aes.encrypt, KEY, client.ip..GBG)
-    admintoken = string.gsub(admintoken, "%W", "")
+    local admintoken =  nil 
+    if(useremail and password) then 
+        local pwtoken = getpwtoken(useremail, password)
+        admintoken = getAdminToken(useremail, pwtoken)
+    else 
+        admintoken = server.ipadmins[client.ip..GBG]
+    end 
+    if(admintoken == nil) then return nil end 
     adminuser = server.admins[admintoken]
     if(adminuser == nil) then return nil end 
+    server.ipadmins[client.ip..GBG] = nil
+    
     adminuser.state = "LOGGED_OUT"
 end
 
@@ -252,11 +281,10 @@ end
 
 local function checkAdminToken( client, useremail, password, pwtoken )
 
-    -- Check ip+port lookup. This is our "connected" user.
-    local admintoken =  aes.ECB_256(aes.encrypt, KEY, client.ip..GBG)
-    admintoken = string.gsub(admintoken, "%W", "")
-    adminuser = server.admins[admintoken]
-    
+    --    p(server.admins, admintoken)
+    local admintoken = nil
+    -- p("[Admin User]", server.ipadmins, pwtoken, useremail, password)
+
     if(pwtoken == nil) then 
         if(useremail == nil or password == nil) then 
             print("[Admin Token] Admin invalid credentials", useremail, password)
@@ -264,8 +292,16 @@ local function checkAdminToken( client, useremail, password, pwtoken )
         end 
 
         -- Gen an initial id from useremail and password - aes crypt is nice.
-        pwtoken = aes.ECB_256(aes.encrypt, KEY, useremail..password..GBG)
-    end
+        pwtoken = getpwtoken(useremail, password)
+        admintoken = getAdminToken(useremail, pwtoken)
+    else 
+
+        -- Check ip+port lookup. This is our "connected" user.
+        admintoken = server.ipadmins[client.ip..GBG]
+    end 
+
+    if(admintoken == nil) then return nil end
+    local adminuser = server.admins[admintoken]
 
     if( adminuser ) then 
         -- check timeout 
@@ -290,6 +326,8 @@ local function checkAdminToken( client, useremail, password, pwtoken )
                 if(adminuser.pwtoken == pwtoken) then 
                     adminuser.state = "LOGGED_IN"
                     adminuser.timeout = thistime
+
+                    server.ipadmins[client.ip..GBG] = admintoken
                     return true
                 end 
                 -- This will force a login.
@@ -297,6 +335,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
             end 
         end
 
+        server.ipadmins[client.ip..GBG] = admintoken
         return true
     end 
 
@@ -321,37 +360,27 @@ local function newAdmin( client, useremail, pwtoken )
     }
     return newadmin
 end
-
----------------------------------------------------------------------------------
-
-local function getpwtoken( useremail, password )
-
-    -- Gen an initial id from useremail and password - aes crypt is nice.
-    local pwtoken = aes.ECB_256(aes.encrypt, KEY, useremail..password..GBG)
-    return pwtoken
-end
-
 ---------------------------------------------------------------------------------
 
 local function checkAdminLogin( client, useremail, password )
-
-    -- Check ip+port lookup. This is our "connected" user.
-    local admintoken =  aes.ECB_256(aes.encrypt, KEY, client.ip..GBG)
-    admintoken = string.gsub(admintoken, "%W", "")
-    adminuser = server.admins[admintoken]
 
     if(useremail == nil or password == nil) then return nil end 
     if(string.len(useremail) == 0 or string.len(password) == 0) then return nil end
 
     local pwtoken = nil
     -- Gen an initial id from useremail and password - aes crypt is nice.
-    pwtoken = aes.ECB_256(aes.encrypt, KEY, useremail..password..GBG)
+    pwtoken = getpwtoken( useremail, password )
 
-    --    print("[Admin login] ",client.ip, client.port, admintoken)   -- TODO: Log this
+    -- Check ip+port lookup. This is our "connected" user.
+    local admintoken =  getAdminToken( useremail, pwtoken )
+    adminuser = server.admins[admintoken]
+
     if(adminuser) then 
         if(adminuser.pwtoken ~= pwtoken) then print("BAD PWTOKEN"); return nil end 
         if(server.admins[admintoken].banned ~= false) then print("BANNED"); return nil end
         adminuser.state = "LOGGED_IN"
+        server.ipadmins[client.ip..GBG] = admintoken
+        -- print("[checkAdminLogin] ",client.ip, client.port, admintoken)   -- TODO: Log this
         return true 
     else 
 
@@ -360,9 +389,10 @@ local function checkAdminLogin( client, useremail, password )
 
             local newadmin = newAdmin( client, useremail, pwtoken )
             server.admins[admintoken] = newadmin
+            server.ipadmins[client.ip..GBG] = admintoken
             writeAdmins()
             return true
-        end
+        end    
     end
     return nil
 end 
@@ -372,8 +402,8 @@ end
 local function isAdminLoggedin( client )
 
     -- Check ip+port lookup. This is our "connected" user.
-    local admintoken =  aes.ECB_256(aes.encrypt, KEY, client.ip..GBG)
-    admintoken = string.gsub(admintoken, "%W", "")
+    local admintoken =  server.ipadmins[client.ip..GBG]
+    if(admintoken == nil) then return nil end
     adminuser = server.admins[admintoken]
     if(adminuser and adminuser.state == "LOGGED_IN") then return adminuser.name end 
     return nil 
@@ -384,8 +414,8 @@ end
 local function setAdminUsername( client, newusername )
 
     -- Check ip+port lookup. This is our "connected" user.
-    local admintoken =  aes.ECB_256(aes.encrypt, KEY, client.ip..GBG)
-    admintoken = string.gsub(admintoken, "%W", "")
+    local admintoken =  server.ipadmins[client.ip..GBG]
+    if(admintoken == nil) then return nil end
     adminuser = server.admins[admintoken]
     if(adminuser and adminuser.state == "LOGGED_IN") then 
         adminuser.name = newusername
@@ -394,6 +424,7 @@ local function setAdminUsername( client, newusername )
     end 
     return nil 
 end 
+
 
 ---------------------------------------------------------------------------------
 
