@@ -157,16 +157,19 @@ local function gameCreate( uid, name )
     stmt:close()
 
     -- Start a server side game module
-    local gameinfo = server.modules[module].creategame(uid, name)
+    local smodule = server.modules[module]
+    if(smodule == nil) then return nil end 
+    
+    local gameinfo = smodule.creategame(uid, name)
     gameinfo.sqlname    = sqlname
     gameinfo.owner      = uid 
-    server.modules[module].data.games[name] = gameinfo
-    server.modules[module].info.gamecount = server.modules[module].info.gamecount + 1
-    sqlapi.setModuleInfo(server.modules[module].info)
+    smodule.data.games[name] = gameinfo
+    smodule.info.gamecount = smodule.info.gamecount + 1
+    sqlapi.setModuleInfo(smodule.info)
     local res = gameJoin( uid, name, true )
 
     -- Reload added people
-    gameinfo = server.modules[module].data.games[name]
+    gameinfo = smodule.data.games[name]
     local gameinfostr = json.encode(gameinfo)
 
     return gameinfostr

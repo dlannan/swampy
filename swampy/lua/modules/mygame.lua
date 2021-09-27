@@ -52,6 +52,7 @@ mygame.creategame   = function( uid, name )
         state       = "something",
     }
     -- Do something with mygameobject 
+    mygame.data.games[name] = gameobj 
     return mygameobject
 end 
 

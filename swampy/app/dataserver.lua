@@ -34,6 +34,7 @@ local DEFAULT_LANG          = "en-US"
 local CONNECT_TIMEOUT       = 3600      -- 1 hour to remove profile for user
 
 local ADMIN_DATA            = "data/admins/store.dli"
+local API_GAME_TOKEN        = "j3mHKlgGZ4"
 
 -- Used for generating a bearer token (or similar to)
 --   CHANGE THIS IF YOU ARE GOING PUBLIC - its a test key
@@ -266,7 +267,8 @@ end
 local function checkAPIToken( token )
     -- TODO - this needs to check server.apitokens list
     --        They can only be added in the admin console. No code methods here
-    if(token == "j3mHKlgGZ4") then return true end 
+    p("[TOKEN] ", token)
+    if(token == API_GAME_TOKEN) then return true end 
     return nil
 end 
 
