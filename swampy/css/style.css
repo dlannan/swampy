@@ -96,6 +96,12 @@ body{
   border-color: #507b58 !important;
   color: #fff !important;
 }
+
+.main-section {
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
 .glyphicon{
   color: #507b58 !important;
 }
@@ -105,8 +111,6 @@ body{
 #header{
   background: #540202;
   color: #fff;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
 }
 #header .dropdown{
   padding-top: 27px;
@@ -132,7 +136,6 @@ body{
   color: #fff;
   text-align: center;
   padding: 30px;
-  margin-top: 30px;
 }
 /* Media Queries
 ******************************************************/
@@ -187,4 +190,22 @@ body{
 
   height: 30vh;
   overflow-y: scroll;
+}
+
+
+.spacer {
+  aspect-ratio: 960/300;
+  width: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+}
+
+.layer1 {
+  background-image: url('./images/layered-waves-red.svg');
 }

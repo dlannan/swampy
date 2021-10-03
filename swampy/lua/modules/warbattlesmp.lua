@@ -1,6 +1,16 @@
 ---------------------------------------------------------------------------------
 -- A name for the game. 
-local mymodulename    = "MyGame"
+local modulename      = "WarBattlesMP"
+
+-- General game operation:
+--    Drop in play. Can join any game any time. 
+--    Once joined, increase amount of tanks to match players. 
+--    Update character positions and rockets
+--    Run tanks AI
+--    Check if tanks are exploded - respawn if needed
+--    Update Player list and player scores
+--    If player exit, then reduce AI tanks (just drop a respawn)
+--    If no players for 5 minutes, drop game
 
 ---------------------------------------------------------------------------------
 -- Each entry in this table creates a sqltable for use in this module
@@ -11,25 +21,34 @@ local SQLITE_TABLES     = {
 ---------------------------------------------------------------------------------
 -- Required properties are: 
 --   name, and sqltables if you want sql persistent data
-local mygame        = {
+local warbattlempgame        = {
     -- You must set this. Or the user will be logged out with a single update
     USER_TIMEOUT    = 120,      
 
-    name            = mymodulename,    
+    name            = modulename,    
     sqltables       = SQLITE_TABLES,
 }
 
 ---------------------------------------------------------------------------------
 -- Run an individual game step. 
+--   The game operations occur here. Usually:
+--     - Check inputs/changes
+--     - Apply to game state
+--     - Output state changes
+--     - Update game sync 
+-- 
 --    TODO: There may be a need to run this in a seperate Lua Env.
 local function runGameStep( game, frame, dt )
+
+
+
 end 
 
 ---------------------------------------------------------------------------------
 -- Main run loop for the module. 
 --    There are no real restrictions here. If you lock the runtime,
 --    This modules thread will lock. The server may kick the module.
-mygame.run          = function( mod, frame, dt )
+warbattlempgame.run          = function( mod, frame, dt )
 
     for k, game in pairs(mod.data.games) do 
         if(game == nil) then 
@@ -43,12 +62,12 @@ end
 ---------------------------------------------------------------------------------
 -- Create a new game in this module. 
 --    Each game can be tailored as needed.
-mygame.creategame   = function( uid, name )
+warbattlempgame.creategame   = function( uid, name )
 
     local gameobj = {
-        name        = mymodulename,
+        name        = modulename,
         gamename    = name, 
-        sqlname     = "TblGame"..mymodulename,
+        sqlname     = "TblGame"..modulename,
         maxsize     = 4,
         people      = {},
         owner       = uid, 
@@ -56,16 +75,16 @@ mygame.creategame   = function( uid, name )
         state       = "something",
     }
     -- Do something with mygameobject 
-    mygame.data.games[name] = gameobj 
+    warbattlempgame.data.games[name] = gameobj 
     return gameobj
 end 
 
 ---------------------------------------------------------------------------------
 -- Update provides feedback data to an update request from a game client. 
-mygame.updategame   =  function( uid, name , body )
+warbattlempgame.updategame   =  function( uid, name , body )
 
     -- get this game assuming you stored it :) and then do something 
-    local game =  mygame.data.games[name] 
+    local game =  warbattlempgame.data.games[name] 
     if(game == nil) then return nil end 
     -- Return some json to players for updates 
 
@@ -78,5 +97,5 @@ mygame.updategame   =  function( uid, name , body )
 end 
 
 ---------------------------------------------------------------------------------
-return mygame
+return warbattlempgame
 ---------------------------------------------------------------------------------

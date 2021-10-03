@@ -130,8 +130,11 @@ end
 
 local function getImage(client, req, res)
     -- TODO: Need to check with mime type really
-    local png = fs.readFileSync("."..req.url)
-    if png then utils.senddata( res, png, "image/png") end
+    local img = fs.readFileSync("."..req.url)
+    local ext = string.sub(req.url, -3, -1)
+    p("[Extension] ", ext)
+    if img and ext:lower() == "png" then utils.senddata( res, img, "image/png") end
+    if img and ext:lower() == "svg" then utils.senddata( res, img, "image/svg+xml") end
 end
 
 ---------------------------------------------------------------------------------
@@ -157,6 +160,9 @@ local EndpointTbl = {
 
 local EnpointMatchTbl = {
     ['/login.php']          = toData,
+
+    ['/css/images/(.*)%.png']   = getImage,
+    ['/css/images/(.*)%.svg']   = getImage,
 
     ['/images/(.*)%.png']   = getImage,
     ['/fonts/(.*)%.woff']   = getFont,

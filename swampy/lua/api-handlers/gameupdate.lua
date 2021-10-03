@@ -28,10 +28,11 @@ api_gameUpdate = function( client, req, res, body )
         games.gameUserUpdate(params.query.uid, params.query.name)
 
         -- Get the current game state. This is within a running lua vm.
-        local jsonstr = tcpserve.gameUpdate(params.query.uid, params.query.name, body)
+        local tblstr = tcpserve.gameUpdate(params.query.uid, params.query.name, body)
 
-        if(jsonstr) then 
+        if(tblstr) then 
             -- print("[gameUpdate] Name: ", params.query.name, "  UID: ", params.query.uid)
+            local jsonstr = json.encode(tblstr)
             outjson = json.encode( { result = jsonstr, status = "OK" } )
         end
     end

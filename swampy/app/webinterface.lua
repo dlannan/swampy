@@ -45,26 +45,40 @@ end
 
 ---------------------------------------------------------------------------------
 
+local function getServerData()
+
+    info = games.getServerInfo()
+    local sdata =  { 
+        modules = utils.tcount(dataserver.server.modules), 
+        games = info.games, 
+        hours = math.floor(info.hours), 
+        players = info.players, 
+    }
+    return sdata
+end
+
+---------------------------------------------------------------------------------
+
 local function getDashboard( client, req, res, body )
 
     -- Get info about source url 
-    local sitedata = datalookup[req.url] or datalookup['/dashboard.html']
+    local sitedata      = datalookup[req.url] or datalookup['/dashboard.html']
 
     -- Get the url - this determines state (index, pages, users etc)
-    local dash = fs.readFileSync("html/dashboard.html")
-    local dash_tpl = liluat.compile(dash)
+    local dash          = fs.readFileSync("html/dashboard.html")
+    local dash_tpl      = liluat.compile(dash)
 
-    local dashnav = fs.readFileSync("html/partials/dashboard_nav.tpl")
-    local dashnav_tpl = liluat.compile(dashnav)
+    local dashnav       = fs.readFileSync("html/partials/dashboard_nav.tpl")
+    local dashnav_tpl   = liluat.compile(dashnav)
     
-    local adminuser = dataserver.isAdminLoggedin(client)
-    local dashnav_html = liluat.render(dashnav_tpl, {pages = ddata, user = adminuser or "none"})
+    local adminuser     = dataserver.isAdminLoggedin(client)
+    local dashnav_html  = liluat.render(dashnav_tpl, {pages = ddata, user = adminuser or "none"})
 
-    local dashmenu = fs.readFileSync("html/partials/dashboard_menu.tpl")
-    local dashmenu_tpl = liluat.compile(dashmenu)
+    local dashmenu      = fs.readFileSync("html/partials/dashboard_menu.tpl")
+    local dashmenu_tpl  = liluat.compile(dashmenu)
     local dashmenu_html = liluat.render(dashmenu_tpl, {pages = ddata, active = req.url})
 
-    local dashmodal = fs.readFileSync("html/partials/modal_edit.tpl")
+    local dashmodal     = fs.readFileSync("html/partials/modal_edit.tpl")
     local dashmodal_tpl = liluat.compile(dashmodal)
     local dashmodal_html = liluat.render(dashmodal_tpl, {pages = ddata})
 
@@ -81,9 +95,9 @@ local function getDashboard( client, req, res, body )
     -- Only load the summary if its needed 
     if(sitedata.url == "/dashboard.html") then 
 
-        local dashsumm = fs.readFileSync("html/partials/dashboard_summary.tpl")
-        local dashsumm_tpl = liluat.compile(dashsumm)
-        local summary_data = { data = { modules = 1, games = 4, hours = 1372, players = 25 }}
+        local dashsumm      = fs.readFileSync("html/partials/dashboard_summary.tpl")
+        local dashsumm_tpl  = liluat.compile(dashsumm)
+        local summary_data  = { data = getServerData() }
         dash_data.dashboard_summary   = liluat.render(dashsumm_tpl, summary_data)
     end
 

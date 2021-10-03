@@ -66,6 +66,9 @@ local server    = {
     info            = {
         diskusage   = 0,
         bwusage     = 0,
+        games       = 0,
+        hours       = 0,
+        players     = 0,
     },
 
     -- Specific users for administration of swampi
@@ -183,6 +186,8 @@ local function initModule( mod )
     initModuleSql(mod)
 end 
 
+---------------------------------------------------------------------------------
+
 local function init( varg )
 
     if(varg[2] == "rebuild") then 
@@ -190,7 +195,7 @@ local function init( varg )
     else
         server.admins = readAdmins() or {}
         if(server.admins == nil) then server.admins = {} end
-        p(server.admins)
+        -- p(server.admins)
     end
 
     server.conn     = sqlapi.init(SERVER_FILE, SQLITE_TABLES)
@@ -587,7 +592,7 @@ local function connectUser( client, module, name, uid )
     userinfo.logintime  = logintime
 
     server.users[uid] = userinfo
-    print("User connected:", uid)
+    print("[connectUser] User connected:", uid)
     if(server.modules[module]) then 
         tinsert(server.modules[module].data.users, uid)
     end 

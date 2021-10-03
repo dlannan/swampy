@@ -7,6 +7,7 @@ local uv    = require('uv')
 local json  = require('lua.json')
 local sql   = require "deps.sqlite3"
 local timer = require "deps.timer"
+local utils = require("lua.utils")
 
 local sqlapi= require "lua.sqlapi"
 
@@ -100,7 +101,11 @@ local function gameJoin( uid, name, ishost )
     udata.host = tostring(ishost or false)
 
     local sqlname, module = getSqlName(uid, name)
-    local gameinfo = server.modules[module].data.games[name]
+    local servermodule = server.modules[module]
+    if(servermodule == nil) then return nil end 
+    if(servermodule.data == nil) then return nil end 
+    if(servermodule.data.games == nil) then return nil end 
+    local gameinfo = servermodule.data.games[name]
     if(gameinfo == nil) then return nil end 
 
     if( gameCheckUser(uid, name) == nil ) then
@@ -119,8 +124,8 @@ local function gameJoin( uid, name, ishost )
         server.users[uid].gamename = name
         server.users[uid].loginstate = "JOINED"
         
-        server.modules[module].info.usercount = server.modules[module].info.usercount + 1
-        sqlapi.setModuleInfo(server.modules[module].info)
+        servermodule.info.usercount = servermodule.info.usercount + 1
+        sqlapi.setModuleInfo(servermodule.info)
     end 
     local gameinfostr = json.encode(gameinfo)
 
@@ -159,7 +164,7 @@ local function gameCreate( uid, name )
     -- Start a server side game module
     local smodule = server.modules[module]
     if(smodule == nil) then return nil end 
-    
+
     local gameinfo = smodule.creategame(uid, name)
     gameinfo.sqlname    = sqlname
     gameinfo.owner      = uid 
@@ -218,11 +223,14 @@ local function gameLeave( uid, name )
 
     -- Remove person from people list
     gameinfo = server.modules[module].data.games[name]
+    if(gameinfo == nil) then return end
     local newpeople = {}
-    for k,v in pairs(gameinfo.people) do 
-        if(v.uid ~= uid) then 
-            tinsert(newpeople, v)
-        end 
+    if(gameinfo.people) then 
+        for k,v in pairs(gameinfo.people) do 
+            if(v.uid ~= uid) then 
+                tinsert(newpeople, v)
+            end 
+        end
     end
 
     gameinfo.people = newpeople
@@ -234,7 +242,7 @@ local function gameLeave( uid, name )
 
     server.modules[module].info.usercount = server.modules[module].info.usercount - 1
     sqlapi.setModuleInfo(server.modules[module].info)
-    return "{ }"
+    return result
 end
 
 ---------------------------------------------------------------------------------
@@ -271,9 +279,12 @@ local function gameClose( uid, name )
     server.modules[module].info.gamecount = server.modules[module].info.gamecount - 1
     sqlapi.setModuleInfo(server.modules[module].info)
     gameinfo = server.modules[module].data.games[name]
+
     -- if there are people connected, then make them leave
-    for k, user in pairs(gameinfo.people) do 
-        gameLeave( user.uid, name )
+    if(gameinfo and gameinfo.people) then 
+        for k, user in pairs(gameinfo.people) do 
+            gameLeave( user.uid, name )
+        end 
     end 
 
     gameRemove(sqlname)
@@ -433,6 +444,31 @@ local function getUserProfiles( )
     return users
 end
 
+---------------------------------------------------------------------------------
+-- Update the server.info and return it (only used by webadmin)
+
+local function getServerInfo()
+
+    if(server == nil) then return end 
+
+    local games     = 0
+    local players   = 0
+    local hours     = 0
+    
+    for k,v in pairs(server.modules) do 
+        if(v) then 
+            if(v.data.games) then games = games + utils.tcount(v.data.games) end 
+            if(v.data.users) then players = players + utils.tcount(v.data.users) end 
+            if(v.info.uptime) then hours = hours + (v.info.uptime / 3600) end
+        end
+    end
+    server.info.games   = games 
+    server.info.players = players 
+    server.info.hours   = hours
+
+    return server.info
+end
+
 --------------------------------------------------------------------------------
 
 
@@ -455,6 +491,7 @@ return {
     getUserProfiles = getUserProfiles,
 
     checkAllGames   = checkAllGames,
+    getServerInfo   = getServerInfo,
 }
 
 --------------------------------------------------------------------------------
