@@ -1,11 +1,4 @@
 
-const tween1 = KUTE.fromTo('#blob10', { path: '#blob10' }, { path: '#blob20' }, { repeat: 999, duration: 3000, yoyo: true } ).start();
-const tween2 = KUTE.fromTo('#blob11', { path: '#blob11' }, { path: '#blob21' }, { repeat: 999, duration: 3000, yoyo: true } ).start();
-const tween3 = KUTE.fromTo('#blob12', { path: '#blob12' }, { path: '#blob22' }, { repeat: 999, duration: 3000, yoyo: true } ).start();
-const tween4 = KUTE.fromTo('#blob13', { path: '#blob13' }, { path: '#blob23' }, { repeat: 999, duration: 3000, yoyo: true } ).start();
-const tween5 = KUTE.fromTo('#blob14', { path: '#blob14' }, { path: '#blob24' }, { repeat: 999, duration: 3000, yoyo: true } ).start();
-
-
 $(document).ready(function(){
     $(".editableTd").on('click', function () {
         if ($(this).find('input').is(':focus')) return this;

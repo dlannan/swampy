@@ -91,6 +91,11 @@ body{
 
 /* customs styles
 ******************************************************/
+
+.main {
+  position: relative;
+}
+
 .main-bgcolors{
   background-color: #507b58 !important;
   border-color: #507b58 !important;
@@ -136,6 +141,10 @@ body{
   color: #fff;
   text-align: center;
   padding: 30px;
+
+  position: absolute;
+  bottom: 0px;
+  width: 100%;
 }
 /* Media Queries
 ******************************************************/
@@ -192,20 +201,54 @@ body{
   overflow-y: scroll;
 }
 
+/* ----------------------- Wave Animation ---- */
 
-.spacer {
-  aspect-ratio: 960/300;
+.wrapper-main {
   width: 100%;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
-
   position: absolute;
-  left: 0;
-  top: 0;
+  bottom: 0px;
   z-index: -1;
 }
 
-.layer1 {
-  background-image: url('./images/layered-waves-red.svg');
+/* Animation */
+
+.parallax > use {
+  animation: move-forever 250s cubic-bezier(.55,.5,.45,.5)     infinite;
+}
+.parallax > use:nth-child(1) {
+  animation-delay: -20s;
+  animation-duration: 70s;
+}
+.parallax > use:nth-child(2) {
+  animation-delay: -30s;
+  animation-duration: 100s;
+}
+.parallax > use:nth-child(3) {
+  animation-delay: -40s;
+  animation-duration: 130s;
+}
+.parallax > use:nth-child(4) {
+  animation-delay: -50s;
+  animation-duration: 200s;
+}
+@keyframes move-forever {
+  0% {
+   transform: translate3d(-90px,0,0);
+  }
+  100% { 
+    transform: translate3d(85px,0,0);
+  }
+}
+/*Shrinking for mobile*/
+@media (max-width: 768px) {
+  .waves {
+    height:40px;
+    min-height:40px;
+  }
+  .content {
+    height:30vh;
+  }
+  h1 {
+    font-size:24px;
+  }
 }
