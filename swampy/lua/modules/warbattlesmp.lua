@@ -37,11 +37,33 @@ local warbattlempgame        = {
 --     - Output state changes
 --     - Update game sync 
 -- 
+---------------------------------------------------------------------------------
+-- Check state 
+local function checkState( game, frame )
+
+    if(game.state) then 
+        for i,v in ipairs(game.state) do 
+            -- kill state if lifetime is old
+            if(frame > v.lt) then 
+                v = nil 
+            end 
+        end 
+    end 
+end
+
+---------------------------------------------------------------------------------
 --    TODO: There may be a need to run this in a seperate Lua Env.
 local function runGameStep( game, frame, dt )
 
+    checkState(game.state, frame)
 
+    if(game.state) then 
+        for i,v in ipairs(game.state) do 
+            -- Do anything with states - collision, scoring.. etc
 
+        end 
+    end 
+    game.frame = frame
 end 
 
 ---------------------------------------------------------------------------------
@@ -72,7 +94,8 @@ warbattlempgame.creategame   = function( uid, name )
         people      = {},
         owner       = uid, 
         private     = true, 
-        state       = "something",
+        state       = {},
+        frame       = 0,
     }
     -- Do something with mygameobject 
     warbattlempgame.data.games[name] = gameobj 
@@ -86,13 +109,20 @@ warbattlempgame.updategame   =  function( uid, name , body )
     -- get this game assuming you stored it :) and then do something 
     local game =  warbattlempgame.data.games[name] 
     if(game == nil) then return nil end 
-    -- Return some json to players for updates 
 
-    game.gamestate = { 
-        data1 = "test",
-        data2 = 12345,
-        data3 = { a = 1, b = "2" },
-    }
+    -- Cleanup states in case there are old ones 
+    checkState( game, game.frame )
+
+    -- Check if we have incoming game states
+    if(body) then 
+        -- State from user has been sent. If lifetime is 0 or null, then clear at next step
+        if(body.uid) then 
+            body.lt = body.lt or 0 
+            table.insert(game.state, body)
+        end 
+    end
+
+    -- Return some json to players for updates 
     return game
 end 
 
