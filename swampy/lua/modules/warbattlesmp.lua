@@ -88,12 +88,12 @@ warbattlempgame.updategame   =  function( uid, name , body )
     if(game == nil) then return nil end 
     -- Return some json to players for updates 
 
-    local gamedata = { 
+    game.gamestate = { 
         data1 = "test",
         data2 = 12345,
         data3 = { a = 1, b = "2" },
     }
-    return gamedata
+    return game
 end 
 
 ---------------------------------------------------------------------------------

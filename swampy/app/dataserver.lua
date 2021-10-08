@@ -610,6 +610,21 @@ local function userUpdateName( uid, playername, lang )
 
     if(playername) then sqlapi.setTableValue( "TblUserAccts", "uid", uid, "username", playername ) end
     if(lang) then sqlapi.setTableValue( "TblUserAccts", "uid", uid, "lang", lang ) end
+
+    -- If the user is in a game, update game details
+    local user = server.users[uid]
+    if(user.gamename) then 
+        local gameinfo = server.modules[user.module].data.games[user.gamename]
+        if(gameinfo and gameinfo.people) then 
+            for k,v in ipairs(gameinfo.people) do 
+                if(v.uid == uid and user.username ~= v.username) then 
+                    v.username = user.username 
+                    break
+                end
+            end
+        end 
+    end
+
     return json.encode({ })
 end
 
@@ -617,6 +632,8 @@ end
 -- MODULES
 ---------------------------------------------------------------------------------
 -- Currently very manual - this will be moved to a thread per module.
+--   Each game module will have its own lua env and thread to update.
+--   Req's will be passed in/out the thread.
 
 local function updateModules()
 

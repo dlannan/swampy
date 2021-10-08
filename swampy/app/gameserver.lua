@@ -102,6 +102,8 @@ local function gameJoin( uid, name, ishost )
 
     local sqlname, module = getSqlName(uid, name)
     local servermodule = server.modules[module]
+
+    -- Check for a bunch of errors
     if(servermodule == nil) then return nil end 
     if(servermodule.data == nil) then return nil end 
     if(servermodule.data.games == nil) then return nil end 
@@ -120,6 +122,7 @@ local function gameJoin( uid, name, ishost )
 
         -- Add username to people listed 
         tinsert(gameinfo.people, { uid = uid, username = udata.username, state = nil } )
+
         -- Set the gamename for the user 
         server.users[uid].gamename = name
         server.users[uid].loginstate = "JOINED"
@@ -161,6 +164,8 @@ local function gameCreate( uid, name )
     stmt:reset():bind( sqlname, name, uid, tostring(1), uid, "WAITING" ):step()
     stmt:close()
 
+----------- TODO: Here goes into seperate running lua module
+
     -- Start a server side game module
     local smodule = server.modules[module]
     if(smodule == nil) then return nil end 
@@ -176,6 +181,8 @@ local function gameCreate( uid, name )
     -- Reload added people
     gameinfo = smodule.data.games[name]
     local gameinfostr = json.encode(gameinfo)
+
+---------- Pipe from started game, returns game info
 
     return gameinfostr
 end
@@ -278,7 +285,7 @@ local function gameClose( uid, name )
 
     server.modules[module].info.gamecount = server.modules[module].info.gamecount - 1
     sqlapi.setModuleInfo(server.modules[module].info)
-    gameinfo = server.modules[module].data.games[name]
+    local gameinfo = server.modules[module].data.games[name]
 
     -- if there are people connected, then make them leave
     if(gameinfo and gameinfo.people) then 
@@ -299,6 +306,7 @@ local function gameUpdate( uid, name, body )
     -- only update a game that this user is a member of 
     local user, module = gameCheckUser( uid, name)
     if(module == nil) then return nil end
+
     local gameinfostr = server.modules[module].updategame(uid, name, body)
     return gameinfostr
 end
