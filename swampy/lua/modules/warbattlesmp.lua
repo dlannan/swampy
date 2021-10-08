@@ -18,6 +18,27 @@ local SQLITE_TABLES     = {
     ["gamedata"]      = { create = "desc TEXT, data TEXT" },
 }
 
+-- ---------------------------------------------------------------------------
+-- User defined events - these are handled in your module
+local USER_EVENT 	= {
+	REQUEST_GAME 	= 1,
+	POLL 			= 2,
+
+	REQUEST_READY	= 10,
+	REQUEST_START 	= 20,
+	REQUEST_WAITING = 30,
+	REQUEST_ROUND 	= 40,
+    REQUEST_PEOPLE 	= 41,
+
+	-- Some War Battle Specific Events 
+	PLAYER_STATE 	= 50, 		-- Generic DO EVERYTHING state 
+
+	-- Smaller simple states (should use this TODO)
+	PLAYER_SHOOT	= 60,		-- Player lauched a rocket 
+	PLAYER_HIT		= 70,		-- Client thinks rocket hit something - server check
+	PLAYER_MOVE 	= 80,		-- Movement has occurred update server
+}
+
 ---------------------------------------------------------------------------------
 -- Required properties are: 
 --   name, and sqltables if you want sql persistent data
@@ -39,13 +60,16 @@ local warbattlempgame        = {
 -- 
 ---------------------------------------------------------------------------------
 -- Check state 
-local function checkState( game, frame )
+local function checkState( game )
 
     if(game.state) then 
+        print(#game.state)
         for i,v in ipairs(game.state) do 
+            p(v)
             -- kill state if lifetime is old
-            if(frame > v.lt) then 
-                v = nil 
+            if(v and game.frame > v.lt) then 
+                table.remove(game.state, i)
+                print("Removing.. ", i)
             end 
         end 
     end 
@@ -55,7 +79,8 @@ end
 --    TODO: There may be a need to run this in a seperate Lua Env.
 local function runGameStep( game, frame, dt )
 
-    checkState(game.state, frame)
+    game.frame = frame
+    checkState(game.state)
 
     if(game.state) then 
         for i,v in ipairs(game.state) do 
@@ -63,7 +88,6 @@ local function runGameStep( game, frame, dt )
 
         end 
     end 
-    game.frame = frame
 end 
 
 ---------------------------------------------------------------------------------
@@ -92,6 +116,7 @@ warbattlempgame.creategame   = function( uid, name )
         sqlname     = "TblGame"..modulename,
         maxsize     = 4,
         people      = {},
+        round       = {},
         owner       = uid, 
         private     = true, 
         state       = {},
@@ -110,20 +135,35 @@ warbattlempgame.updategame   =  function( uid, name , body )
     local game =  warbattlempgame.data.games[name] 
     if(game == nil) then return nil end 
 
-    -- Cleanup states in case there are old ones 
-    checkState( game, game.frame )
+    local result = nil
 
     -- Check if we have incoming game states
     if(body) then 
         -- State from user has been sent. If lifetime is 0 or null, then clear at next step
-        if(body.uid) then 
-            body.lt = body.lt or 0 
-            table.insert(game.state, body)
+        if(body.uid and body.event == USER_EVENT.PLAYER_STATE) then 
+            body.state.lt = (body.state.lt or 0) + game.frame
+            table.insert(game.state, body.state)
+            result = game.state
+        end 
+        -- State from user has been sent. If lifetime is 0 or null, then clear at next step
+        if(body.uid and body.event == USER_EVENT.REQUEST_GAME) then 
+            result = game
+        end 
+
+        if(body.uid and body.event == USER_EVENT.REQUEST_ROUND) then 
+            result = game.state
+        end 
+
+        if(body.uid and body.event == USER_EVENT.REQUEST_PEOPLE) then 
+            result = game.people
         end 
     end
 
+    -- Cleanup states in case there are old ones 
+    checkState( game )
+
     -- Return some json to players for updates 
-    return game
+    return result
 end 
 
 ---------------------------------------------------------------------------------

@@ -308,6 +308,7 @@ local function gameUpdate( uid, name, body )
     if(module == nil) then return nil end
 
     if(body) then body = json.decode(body) end
+    if(body.state) then body.state = json.decode(body.state) end
 
     local gameinfostr = server.modules[module].updategame(uid, name, body)
     return gameinfostr
