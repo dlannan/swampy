@@ -471,6 +471,18 @@ end
 
 --------------------------------------------------------------------------------
 
+local function getAllDatabases()
+
+    local count = 0
+    local fh = io.popen("ls -A1 ./data/*.sqlite3 | wc -l")
+    if(fh) then 
+        count = tonumber(fh:read("*a"))
+        fh:close()
+    end 
+    return count 
+end
+
+--------------------------------------------------------------------------------
 
 return {
 
@@ -489,6 +501,7 @@ return {
     getAllModules   = getAllModules,
     getAdminUsers   = getAdminUsers, 
     getUserProfiles = getUserProfiles,
+    getAllDatabases = getAllDatabases,
 
     checkAllGames   = checkAllGames,
     getServerInfo   = getServerInfo,

@@ -59,10 +59,25 @@ end
 
 ---------------------------------------------------------------------------------
 
+local function updateDData()
+
+    local info = getServerData()
+    ddata[2].count = info.modules
+    ddata[3].count = info.games
+    ddata[4].count = utils.tcount(dataserver.server.admins)
+    ddata[5].count = info.players
+    ddata[6].count = games.getAllDatabases()
+end
+
+---------------------------------------------------------------------------------
+
 local function getDashboard( client, req, res, body )
 
     -- Get info about source url 
     local sitedata      = datalookup[req.url] or datalookup['/dashboard.html']
+
+    -- Update ddata
+    updateDData()
 
     -- Get the url - this determines state (index, pages, users etc)
     local dash          = fs.readFileSync("html/dashboard.html")
