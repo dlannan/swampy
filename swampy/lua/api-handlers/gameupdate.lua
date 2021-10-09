@@ -32,8 +32,7 @@ api_gameUpdate = function( client, req, res, body )
 
         if(tblstr) then 
             -- print("[gameUpdate] Name: ", params.query.name, "  UID: ", params.query.uid)
-            local jsonstr = json.encode(tblstr)
-            outjson = json.encode( { result = jsonstr, status = "OK" } )
+            outjson = json.encode( { result = tblstr, status = "OK" } )
         end
     end
 

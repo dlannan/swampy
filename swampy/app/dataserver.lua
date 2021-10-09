@@ -272,7 +272,6 @@ end
 local function checkAPIToken( token )
     -- TODO - this needs to check server.apitokens list
     --        They can only be added in the admin console. No code methods here
-    p("[TOKEN] ", token)
     if(token == API_GAME_TOKEN) then return true end 
     return nil
 end 

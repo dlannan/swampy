@@ -63,13 +63,10 @@ local warbattlempgame        = {
 local function checkState( game )
 
     if(game.state) then 
-        print(#game.state)
         for i,v in ipairs(game.state) do 
-            p(v)
             -- kill state if lifetime is old
             if(v and game.frame > v.lt) then 
                 table.remove(game.state, i)
-                print("Removing.. ", i)
             end 
         end 
     end 
@@ -136,14 +133,18 @@ warbattlempgame.updategame   =  function( uid, name , body )
     if(game == nil) then return nil end 
 
     local result = nil
+    -- Cleanup states in case there are old ones 
+    checkState( game )
 
     -- Check if we have incoming game states
     if(body) then 
         -- State from user has been sent. If lifetime is 0 or null, then clear at next step
         if(body.uid and body.event == USER_EVENT.PLAYER_STATE) then 
-            body.state.lt = (body.state.lt or 0) + game.frame
-            table.insert(game.state, body.state)
-            result = game.state
+            if(body.state) then 
+                body.state.lt = (body.state.lt or 0) + game.frame
+                table.insert(game.state, body.state)
+                result = game.state
+            end
         end 
         -- State from user has been sent. If lifetime is 0 or null, then clear at next step
         if(body.uid and body.event == USER_EVENT.REQUEST_GAME) then 
@@ -158,9 +159,6 @@ warbattlempgame.updategame   =  function( uid, name , body )
             result = game.people
         end 
     end
-
-    -- Cleanup states in case there are old ones 
-    checkState( game )
 
     -- Return some json to players for updates 
     return result

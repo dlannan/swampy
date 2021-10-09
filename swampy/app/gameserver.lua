@@ -8,6 +8,7 @@ local json  = require('lua.json')
 local sql   = require "deps.sqlite3"
 local timer = require "deps.timer"
 local utils = require("lua.utils")
+local bser  = require("lua.binser")
 
 local sqlapi= require "lua.sqlapi"
 
@@ -307,10 +308,11 @@ local function gameUpdate( uid, name, body )
     local user, module = gameCheckUser( uid, name)
     if(module == nil) then return nil end
 
-    if(body) then body = json.decode(body) end
-    if(body.state) then body.state = json.decode(body.state) end
+    if(body) then body = bser.deserialize(body)[1] end
+    if(body.state) then body.state = bser.deserialize(body.state)[1] end
 
-    local gameinfostr = server.modules[module].updategame(uid, name, body)
+    local gameinfotbl = server.modules[module].updategame(uid, name, body)
+    local gameinfostr = bser.serialize(gameinfotbl)
     return gameinfostr
 end
 
