@@ -1,6 +1,8 @@
 
 package.path = package.path..";./deps/?.lua;./deps/?/init.lua"
 package.path = package.path..";./deps/path/?.lua;./deps/stream/?.lua"
+package.path = package.path..";./deps/luvit-websocket/?.lua"
+package.path = package.path..";./deps/luvit-websocket/libs/?.lua"
 package.path = package.path..";./deps/tls/?.lua"
 ---------------------------------------------------------------------------------
 

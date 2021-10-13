@@ -1,3 +1,7 @@
+
+-- Make a websocket to allow games to talk to clients faster/better
+local WebSocket = require("luvit-websocket")
+
 ---------------------------------------------------------------------------------
 -- A name for the game. 
 local modulename      = "WarBattlesMP"
@@ -17,6 +21,8 @@ local modulename      = "WarBattlesMP"
 local SQLITE_TABLES     = {
     ["gamedata"]      = { create = "desc TEXT, data TEXT" },
 }
+
+local allWSServers      = {}
 
 -- ---------------------------------------------------------------------------
 -- User defined events - these are handled in your module
@@ -69,6 +75,8 @@ local function checkState( game )
                 table.remove(game.state, i)
             end 
         end 
+        -- Allows client to sync to the module frame
+        game.state.frame = game.frame
     end 
 end
 
@@ -118,8 +126,28 @@ warbattlempgame.creategame   = function( uid, name )
         private     = true, 
         state       = {},
         frame       = 0,
+        ws_port     = 9999,
     }
-    -- Do something with mygameobject 
+
+    local ws_server = WebSocket.server.new():listen(gameobj.ws_port)
+    print("WebSocket server running on port "..gameobj.ws_port)
+    ws_server:on("connect", function(client)
+        print("Client connected.")
+        client:send("random message")
+    end)
+
+    ws_server:on("data", function(client, message)
+        print("New data from client ", client)
+        print(message)
+        print("Responding by mirroring")
+        client:send(message)
+    end)
+
+    ws_server:on("disconnect", function(client)
+        print("Client " .. client.id .. " disconnected.")
+    end)
+    allWSServers[gamename] = ws_server
+
     warbattlempgame.data.games[name] = gameobj 
     return gameobj
 end 
@@ -133,7 +161,7 @@ warbattlempgame.updategame   =  function( uid, name , body )
     if(game == nil) then return nil end 
 
     local result = nil
-    -- Cleanup states in case there are old ones 
+    -- -- Cleanup states in case there are old ones 
     checkState( game )
 
     -- Check if we have incoming game states
