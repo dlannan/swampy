@@ -6,6 +6,8 @@ local WebSocket = require("luvit-websocket")
 -- A name for the game. 
 local modulename      = "WarBattlesMP"
 
+local MAX_GAMES       = 50
+
 -- General game operation:
 --    Drop in play. Can join any game any time. 
 --    Once joined, increase amount of tanks to match players. 
@@ -23,26 +25,27 @@ local SQLITE_TABLES     = {
 }
 
 local allWSServers      = {}
+allWSServersCount       = 0
 
 -- ---------------------------------------------------------------------------
 -- User defined events - these are handled in your module
-local USER_EVENT 	= {
-	REQUEST_GAME 	= 1,
-	POLL 			= 2,
+local USER_EVENT 	    = {
+	REQUEST_GAME 	    = 1,
+	POLL 			    = 2,
 
-	REQUEST_READY	= 10,
-	REQUEST_START 	= 20,
-	REQUEST_WAITING = 30,
-	REQUEST_ROUND 	= 40,
-    REQUEST_PEOPLE 	= 41,
+	REQUEST_READY	    = 10,
+	REQUEST_START 	    = 20,
+	REQUEST_WAITING     = 30,
+	REQUEST_ROUND 	    = 40,
+    REQUEST_PEOPLE 	    = 41,
 
 	-- Some War Battle Specific Events 
-	PLAYER_STATE 	= 50, 		-- Generic DO EVERYTHING state 
+	PLAYER_STATE 	    = 50, 		-- Generic DO EVERYTHING state 
 
 	-- Smaller simple states (should use this TODO)
-	PLAYER_SHOOT	= 60,		-- Player lauched a rocket 
-	PLAYER_HIT		= 70,		-- Client thinks rocket hit something - server check
-	PLAYER_MOVE 	= 80,		-- Movement has occurred update server
+	PLAYER_SHOOT	    = 60,		-- Player lauched a rocket 
+	PLAYER_HIT		    = 70,		-- Client thinks rocket hit something - server check
+	PLAYER_MOVE 	    = 80,		-- Movement has occurred update server
 }
 
 ---------------------------------------------------------------------------------
@@ -110,6 +113,37 @@ warbattlempgame.run          = function( mod, frame, dt )
     end
 end 
 
+
+---------------------------------------------------------------------------------
+-- Websocket is faster for realtime data
+--    The main game state (player, enemy and rockets) goes through here.
+local function setupWebSocket(gameobj)
+
+    -- Dont create websockets if too many games
+    if(allWSServersCount + 1 > MAX_GAMES) then return end 
+
+    local ws_server = WebSocket.server.new():listen(gameobj.ws_port)
+    print("[m.creategame] WebSocket server running on port "..gameobj.ws_port)
+    ws_server:on("connect", function(client)
+        print("[m.creategame] Client connected.")
+        client:send("random message")
+    end)
+
+    ws_server:on("data", function(client, message)
+        print("[m.creategame] New data from client ", client)
+        print(message)
+        print("[m.creategame] Responding by mirroring")
+        client:send(message)
+    end)
+
+    ws_server:on("disconnect", function(client)
+        print("[m.creategame] Client " .. tostring(client.id) .. " disconnected.")
+    end)
+
+    allWSServers[gameobj.gamename] = ws_server
+    allWSServersCount = allWSServersCount + 1
+end
+
 ---------------------------------------------------------------------------------
 -- Create a new game in this module. 
 --    Each game can be tailored as needed.
@@ -126,27 +160,10 @@ warbattlempgame.creategame   = function( uid, name )
         private     = true, 
         state       = {},
         frame       = 0,
-        ws_port     = 9999,
+        ws_port     = 11000 + (allWSServersCount % MAX_GAMES),  -- only allows 50 games on this server
     }
 
-    local ws_server = WebSocket.server.new():listen(gameobj.ws_port)
-    print("WebSocket server running on port "..gameobj.ws_port)
-    ws_server:on("connect", function(client)
-        print("Client connected.")
-        client:send("random message")
-    end)
-
-    ws_server:on("data", function(client, message)
-        print("New data from client ", client)
-        print(message)
-        print("Responding by mirroring")
-        client:send(message)
-    end)
-
-    ws_server:on("disconnect", function(client)
-        print("Client " .. client.id .. " disconnected.")
-    end)
-    allWSServers[gamename] = ws_server
+    setupWebSocket(gameobj)
 
     warbattlempgame.data.games[name] = gameobj 
     return gameobj

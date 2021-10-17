@@ -1,3 +1,5 @@
+local exports = {}
+
 exports.name = "websocketutils"
 exports.version = "0.0.1"
 exports.author = "Niklas Kühtmann"
@@ -131,7 +133,6 @@ exports.assembleHandshakeResponse = function(handshake)
       end
     end
 
-
     local responseKey = data["Sec-WebSocket-Key"] .. '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
     responseKey = b64.encode(sha1.binary(responseKey))
     
@@ -141,3 +142,5 @@ exports.assembleHandshakeResponse = function(handshake)
           .."Sec-WebSocket-Accept: " .. responseKey .. "\r\n"
           .."\r\n"
 end
+
+return exports

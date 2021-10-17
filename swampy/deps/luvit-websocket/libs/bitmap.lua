@@ -1,3 +1,5 @@
+local exports = {}
+
 exports.name = "bitmap"
 exports.version = "0.0.1"
 exports.author = "Niklas Kühtmann"
@@ -77,3 +79,5 @@ exports.isBitSet = function(value, shift)
     shift = shift or 1
     return bit.band(bit.rshift(value, shift-1), 1)
 end
+
+return exports

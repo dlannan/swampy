@@ -1,3 +1,5 @@
+local exports = {}
+
 exports.name = "WebSocket Server"
 exports.version = "0.0.1"
 
@@ -35,23 +37,22 @@ exports.new = function(func)
 
 	t.server = net.createServer(function(client)
 		client.oldBuffer = ""
+		client.startheader = false
+		client.header = ""
 
 		client:on("data", function(c)
+			
 			client.send = function(self, msg)
 				client:write(wsu.assemblePacket(msg))
 			end
 
 			if c:sub(1,3) == "GET" then 
-				client:write(wsu.assembleHandshakeResponse(c))
-				t:call("connect", client)
 
-		        table.insert(t.clients, client)
-		        for k,v in pairs(t.clients) do
-		          if v == client then
-		            client.id = k
-		          end
-		        end
-			else
+				client.startheader = true 
+				client.header = client.header..c 
+			end 
+
+			if(not client.startheader) then
 				local message, v = wsu.disassemblePacket(client.oldBuffer .. c)
 				if message == 3 then
 					client.oldBuffer = client.oldBuffer .. c
@@ -67,7 +68,24 @@ exports.new = function(func)
 				else 
 					print("WebSocket Error: Could not parse message.")
 				end
-			end
+			else
+				client.header = client.header..c 
+				local endheader = string.sub(client.header, -4, -1)
+				if(endheader == "\r\n\r\n") then 
+					client:write(wsu.assembleHandshakeResponse(client.header))
+					t:call("connect", client)
+	
+					table.insert(t.clients, client)
+					for k,v in pairs(t.clients) do
+					  if v == client then
+						client.id = k
+					  end
+					end
+
+					client.startheader = false 
+					client.header = ""		
+				end
+			end 
 		end)
 
 		local function onTimeout()
@@ -75,6 +93,8 @@ exports.new = function(func)
 			t:call("timeout", client)
 			t.clients[client.id or 0] = nil
   			client:_end()
+			client.startheader = false 
+			client.header = ""
 		end
 		client:once('timeout', onTimeout)
 		process:once('exit', onTimeout)
@@ -84,6 +104,8 @@ exports.new = function(func)
 			t:call("disconnect", client)
 			t.clients[client.id or 0] = nil
     		process:removeListener('exit', onTimeout)
+			client.startheader = false 
+			client.header = ""
 		end)
 
 	end)

@@ -1,7 +1,7 @@
-local websockets = {}
-exports = {}
-websockets.server = require('server')
+
+local exports = {}
+exports.server = require('server')
 --TODO: exports.client = require('./client.lua')
 
 
-return websockets
+return exports

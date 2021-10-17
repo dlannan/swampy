@@ -1,3 +1,5 @@
+local exports = {}
+
 exports.name = "bytemap"
 exports.version = "0.0.1"
 exports.author = "Niklas Kühtmann"
@@ -132,3 +134,5 @@ exports.fromString = function(str)
     end
     return exports.new(t)
 end
+
+return exports 

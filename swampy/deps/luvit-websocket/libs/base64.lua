@@ -51,9 +51,10 @@ end
 ---------------------------------------------------------
 --- END ORIGINAL
 ---------------------------------------------------------
-
+local exports = {}
 exports.encode = base64.encode
 exports.decode = base64.decode
 exports.name = "base64"
 exports.version = "v3.0"
 exports.author = "Alex Kloss"
+return exports
