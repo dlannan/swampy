@@ -14,6 +14,13 @@ local sqlapi= require "lua.sqlapi"
 
 local server = nil 
 
+-- Make a websocket to allow games to talk to clients faster/better
+WebSocket   = require("luvit-websocket")
+
+OSVehicle   = require("lua.opensteer.os-simplevehicle")
+OSPathway   = require("lua.opensteer.os-pathway")
+Vec3        = require("lua.opensteer.os-vec")
+
 ---------------------------------------------------------------------------------
 
 local GAME_SCHEMA = "gid TEXT PRIMARY KEY, userid TEXT, username TEXT, playerdata TEXT"
@@ -29,6 +36,24 @@ local function getSqlName(uid, name)
 
     local sqlname = "TblGame"..module..name
     return sqlname, module
+end 
+
+---------------------------------------------------------------------------------
+-- Gets a cleaned up gameobject (less data)
+local function getGameObject(gameobj)
+
+    local slimobj = {
+        name        = gameobj.name,
+        gamename    = gameobj.gamename, 
+        maxsize     = gameobj.maxsize,
+        people      = gameobj.people,
+        owner       = gameobj.owner, 
+        private     = gameobj.private, 
+        state       = gameobj.state,
+        frame       = gameobj.frame,
+        ws_port     = gameobj.ws_port,
+    }
+    return slimobj
 end 
 
 ---------------------------------------------------------------------------------
@@ -108,7 +133,7 @@ local function gameJoin( uid, name, ishost )
     if(servermodule == nil) then return nil end 
     if(servermodule.data == nil) then return nil end 
     if(servermodule.data.games == nil) then return nil end 
-    local gameinfo = servermodule.data.games[name]
+    local gameinfo = getGameObject(servermodule.data.games[name])
     if(gameinfo == nil) then return nil end 
 
     if( gameCheckUser(uid, name) == nil ) then
@@ -180,7 +205,7 @@ local function gameCreate( uid, name )
     local res = gameJoin( uid, name, true )
 
     -- Reload added people
-    gameinfo = smodule.data.games[name]
+    gameinfo = getGameObject(smodule.data.games[name])
     local gameinfostr = json.encode(gameinfo)
 
 ---------- Pipe from started game, returns game info
