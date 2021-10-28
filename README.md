@@ -1,33 +1,48 @@
-# Luvit Docker Image Source
+# SWAMPY 
 
-Luvit Docker Image is based on:
+SWAMPY is a simple multi-player game server.
 
-https://github.com/baleyko/docker-luvit
+It was intiially designed for a card game that Im trying to finish off. It was needed because
+I wanted a game server that was _extremely_ simple in terms of joining and lobbies - a bit like 
+party mode in many game servers.
 
-It's a source code of docker image with [Luvit](https://luvit.io/).
+Feature wise it is quite light, but it is also very capable. 
 
-Luvit - it's a lightweight implementation of Lua programming language, using the event loop, distribute with a standard library that implements similiar to the Node.js standard library interface.
-Read the official documentation to learn more.
+## Starting
 
-Before starting swampy make sure you have installed your SSL keys in swampy/swampy/keys folder.
-You should have a fullkeychain.pem, a cert.pem and a privkey.key. 
-If you use letsencrypt you can easily generate these.
+To jump in and just run SWAMPY do the following:
 
-To start swampy using docker-compose:
+1. Generate some SSL keys for the server. These are put into the keys folder (current keys are empty files!).
+2. Run the command: ```./luvit app/httpsserver.lua```
 
-```shell
-$ git clone https://github.com/dlannan/swampy.git
-$ cd swampy
-$ docker-compose build
-$ docker-compose up -d
+Thats it. When running in this mode you will see all the logging from the server.
+
+### Errors
+
+If you see this message then your keys are not correct, not named properly or are missing.
+```
+Uncaught exception:
+[string "bundle:/init.lua"]:49: /home/user1/repos/swampy/swampy/deps/tls/common.lua:146: system lib
+stack traceback:
+        [builtin#37]: at 0x004f7cd0
+        [string "bundle:/init.lua"]:49: in function <[string "bundle:/init.lua"]:47>
+        [C]: in function 'xpcall'
+        [string "bundle:/init.lua"]:47: in function 'fn'
+        [string "bundle:deps/require.lua"]:310: in function <[string "bundle:deps/require.lua"]:266>
 ```
 
-## SWAMPY 
+## Admin 
 
-The Swampy source code is in swampy/swampy.
+The first time you access the admin, it will use your login and password credentials and create 
+and admin account. At the moment, there is only 1 admin account. It does support as many as 
+you want, but there is no interface yet for it :)   (TBD!)
 
-Being a luvit based system, SWAMPY is entirely built from Web pages (mostly static) and lua.
+In the admin panel you wont be able to do much until you have a game module and players to examine. 
+There is still dummy data in the summary (I know, I know!!)
 
-## License
-  
-It's distributed under [MIT License](LICENSE).
+There is a sample module in the create panel in the module tab. This is not complete yet, but will 
+be available soon. This will allow any admin to create a new module for a game and then activate it. 
+
+Game modules can be highly customizable. The api for them ise expected to expand. 
+
+...more docs soon.
