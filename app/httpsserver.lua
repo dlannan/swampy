@@ -319,7 +319,7 @@ local function run(port)
     ---------------------------------------------------------------------------------
 
     https.createServer({ key = key,  cert = cert, }, onRequest):listen(port)
-    p("Server listening at https://"..SERVER_IP..":"..SERVER_PORT.."/")
+    p("Server listening at https://"..SERVER_IP..":"..port.."/")
 
     -- Need to catch sig and close (for proper shutdown)
     --tcpserve.close()
