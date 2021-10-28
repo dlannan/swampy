@@ -309,20 +309,30 @@ function onRequest(req, res)
 	end);
 end
 
----------------------------------------------------------------------------------
--- Need to auto update keys from lets encrypt
-local key = fs.readFileSync("./keys/privkey.pem")
-local cert = fs.readFileSync("./keys/fullchain.pem")
+
+local function run()
+
+    ---------------------------------------------------------------------------------
+    -- Need to auto update keys from lets encrypt
+    local key = fs.readFileSync("./keys/privkey.pem")
+    local cert = fs.readFileSync("./keys/fullchain.pem")
+
+    ---------------------------------------------------------------------------------
+
+    https.createServer({ key = key,  cert = cert, }, onRequest):listen(SERVER_PORT)
+    p("Server listening at https://"..SERVER_IP..":"..SERVER_PORT.."/")
+
+    -- Need to catch sig and close (for proper shutdown)
+    --tcpserve.close()
+    ---------------------------------------------------------------------------------
+
+    tcpserve.runModules()
+
+    print("Started...")
+end
 
 ---------------------------------------------------------------------------------
 
-https.createServer({ key = key,  cert = cert, }, onRequest):listen(SERVER_PORT)
-p("Server listening at https://"..SERVER_IP..":"..SERVER_PORT.."/")
-
--- Need to catch sig and close (for proper shutdown)
---tcpserve.close()
----------------------------------------------------------------------------------
-
-tcpserve.runModules()
-
-print("Started...")
+return {
+    run     = run,
+}
