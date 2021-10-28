@@ -21,7 +21,6 @@ local utils     = require("lua.utils")
 
 ---------------------------------------------------------------------------------
 -- TODO: Make an arg, instead. This is very temp.
-local SERVER_PORT   = 5000
 local SERVER_IP     = "0.0.0.0"
 ---------------------------------------------------------------------------------
 
@@ -310,7 +309,7 @@ function onRequest(req, res)
 end
 
 
-local function run()
+local function run(port)
 
     ---------------------------------------------------------------------------------
     -- Need to auto update keys from lets encrypt
@@ -319,7 +318,7 @@ local function run()
 
     ---------------------------------------------------------------------------------
 
-    https.createServer({ key = key,  cert = cert, }, onRequest):listen(SERVER_PORT)
+    https.createServer({ key = key,  cert = cert, }, onRequest):listen(port)
     p("Server listening at https://"..SERVER_IP..":"..SERVER_PORT.."/")
 
     -- Need to catch sig and close (for proper shutdown)
