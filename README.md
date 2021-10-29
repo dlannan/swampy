@@ -15,11 +15,17 @@ Feature wise it is quite light, but it is also very capable.
 To jump in and just run SWAMPY do the following:
 
 1. Generate some SSL keys for the server. These are put into the keys folder (current keys are empty files!).
-2. Run the command: ```./luvit app/httpsserver.lua```
+2. Run the command: ```./luvit init.lua```
 
 Thats it. When running in this mode you will see all the logging from the server.
 
-### Errors
+Note:
+
+SWAMPY is currently setup for http by default - so it is not very secure.
+SSL is available, but it is manual to get working. I'll make this easier to do.
+
+
+### Errors - SSL/HTTPS
 
 If you see this message then your keys are not correct, not named properly or are missing.
 ```

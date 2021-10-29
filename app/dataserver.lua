@@ -124,6 +124,7 @@ local function readAdmins()
         admins = bitser.loads(instr)
         fh:close()
     end
+    p(admins)
     return admins
 end
 
@@ -334,7 +335,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
 
     --    p(server.admins, admintoken)
     local admintoken = nil
-    -- p("[Admin User]", server.ipadmins, pwtoken, useremail, password)
+    --p("[Admin User]", server.ipadmins, pwtoken, useremail, password)
 
     if(pwtoken == nil) then 
         if(useremail == nil or password == nil) then 
