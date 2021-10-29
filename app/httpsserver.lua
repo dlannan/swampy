@@ -317,9 +317,11 @@ local function run(port)
     local cert = fs.readFileSync("./keys/fullchain.pem")
 
     ---------------------------------------------------------------------------------
-
-    -- https.createServer({ key = key, cert = cert }, onRequest):listen(port)
+if USE_HTTPS then 
+    https.createServer({ key = key, cert = cert }, onRequest):listen(port)
+else 
     http.createServer(onRequest):listen(port)
+end
     p("Server listening at http://"..SERVER_IP..":"..port.."/")
 
     -- Need to catch sig and close (for proper shutdown)
