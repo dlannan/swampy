@@ -1,6 +1,6 @@
 # SWAMPY 
 
-**WARNING** : SWAMPY is now split into two repos. One for docker: https://github.com/dlannan/swampy-docker and this repo which is used for submodules and Heroku.
+**WARNING** : SWAMPY is now split into two repos. One for docker: https://github.com/dlannan/swampy-docker and this repo which is used for submodules.
 
 SWAMPY is a simple multi-player game server.
 
