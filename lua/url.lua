@@ -52,7 +52,7 @@ local legal = {
 	["~"] = true, ["*"] = true, ["'"] = true, ["("] = true,
 	[")"] = true, [":"] = true, ["@"] = true, ["&"] = true,
 	["="] = true, ["+"] = true, ["$"] = true, [","] = true,
-	[";"] = true -- can be used for parameters in path
+	[";"] = true,  -- can be used for parameters in path
 }
 
 local function decode(str, path)

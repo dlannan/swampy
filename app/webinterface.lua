@@ -152,7 +152,7 @@ local function getDashboard( client, req, res, body )
 
     local dash_render = liluat.render(dash_tpl, dash_data)
     if(dash_render == nil) then dash_render = fourOfour_html end
-    -- print(utils.getcookie(res, "sessionId"))
+    print(utils.getcookie(res, "sessionId"))
     utils.sendhtml( res, dash_render )
 end 
 
@@ -179,9 +179,9 @@ local function invalidUser(client, tcpserve, req, res, body)
 
     local errorPage = nil
     local qdata = {uname = nil, psw = nil}
+
     if(body and string.len(body) > 0) then  qdata = url.parseQuery(body) end
     local key, pwtoken = utils.getcookie(req, "sessionId")
-
     if( tcpserve.checkAdminToken(client, qdata.uname, qdata.psw, pwtoken) == nil ) then 
         errorPage = true 
     end

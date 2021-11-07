@@ -123,7 +123,6 @@ local function toData(client, req, res, body)
             return
         end 
     end 
-
     wui.loginPage(client, req, res)
 end
 
@@ -133,7 +132,7 @@ local function getImage(client, req, res)
     -- TODO: Need to check with mime type really
     local img = fs.readFileSync("."..req.url)
     local ext = string.sub(req.url, -3, -1)
-    p("[Extension] ", ext)
+    --p("[Extension] ", ext)
     if img and ext:lower() == "png" then utils.senddata( res, img, "image/png") end
     if img and ext:lower() == "svg" then utils.senddata( res, img, "image/svg+xml") end
 end
@@ -172,7 +171,7 @@ local EnpointMatchTbl = {
 
     ['^/js/(.*)%.js$']      = getJS,
     ['^/css/(.*)%.css$']    = getCSS,
-    ['^/css/(.*)%.map$']    = function(client, req, res) notFound(res) end,
+    ['^/css/(.*)%.map$']    = function(client, req, res, body) notFound(res) end,
 
 --    ['^/(.*)%.html$']       = getHTML,
 }
@@ -301,7 +300,7 @@ function onRequest(req, res)
    
 	local body = '';
 	--req.setEncoding('utf8');
-	req:on('data', function(chunk) body =body.. chunk end);
+	req:on('data', function(chunk) body = body..chunk end);
 	req:on('end', function()
 		local obj = qs.parse(body)
 		processRequest(req, res, body)

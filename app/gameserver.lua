@@ -52,6 +52,8 @@ local function getGameObject(gameobj)
         state       = gameobj.state,
         frame       = gameobj.frame,
         ws_port     = gameobj.ws_port,
+        init        = gameobj.init,
+        time        = gameobj.time,
     }
     return slimobj
 end 
@@ -209,7 +211,6 @@ local function gameCreate( uid, name )
     local gameinfostr = json.encode(gameinfo)
 
 ---------- Pipe from started game, returns game info
-
     return gameinfostr
 end
 

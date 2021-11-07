@@ -14,7 +14,7 @@ local timer = require "deps.timer"
 local sqlapi= require "lua.sqlapi"
 local games = require "app.gameserver"
 
-local bitser = require "lua.bitser"
+local binser = require "lua.binser"
 
 ---------------------------------------------------------------------------------
 -- Admin
@@ -121,10 +121,10 @@ local function readAdmins()
     local fh = io.open(ADMIN_DATA, "r")
     if( fh ) then 
         local instr = fh:read("*a") 
-        admins = bitser.loads(instr)
+        admins = binser.deserialize(instr)[1]
         fh:close()
     end
-    p(admins)
+    -- p(admins)
     return admins
 end
 
@@ -132,7 +132,7 @@ end
 
 local function writeAdmins()
 
-    local outstr = bitser.dumps(server.admins)
+    local outstr = binser.serialize(server.admins)
     local fh = io.open(ADMIN_DATA, "w")
     if( fh ) then fh:write(outstr); fh:close()  end 
 
@@ -148,7 +148,6 @@ local function initModuleSql( mod )
         sqlapi.setConn(mod.sql.conn)
         local jsontbl = {}
         for k ,v in pairs(mod.sqltables) do
-            p(k)
             local tbl = sqlapi.getTable( k, tablelimit )
             jsontbl[k] = tbl
         end
@@ -338,6 +337,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
     --p("[Admin User]", server.ipadmins, pwtoken, useremail, password)
 
     if(pwtoken == nil) then 
+
         if(useremail == nil or password == nil) then 
             print("[Admin Token] Admin invalid credentials", useremail, password)
             return nil 
@@ -349,6 +349,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
     else 
 
         -- Check ip+port lookup. This is our "connected" user.
+        if(client == nil) then return nil end 
         admintoken = server.ipadmins[client.ip..GBG]
     end 
 

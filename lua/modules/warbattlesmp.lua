@@ -1,7 +1,8 @@
 
 ---------------------------------------------------------------------------------
 -- A name for the game. 
-local modulename      = "WarBattlesMP"
+local modulename        = "WarBattlesMP"
+local bitser            = require "lua.binser"
 
 -- General game operation:
 --    Drop in play. Can join any game any time. 
@@ -156,7 +157,6 @@ for k,v in ipairs(gamedata.tank_paths) do
     local radius = 1
 
     local ptcount = table.getn(v) / 2 
-    print(ptcount)
     for i=0, ptcount - 1 do  
         local pt = Vec3Set(v[i * 2 + 1 ], 0, v[i * 2 + 2])
         points[i] = pt
@@ -176,7 +176,6 @@ local Tank = function( gameobj )
     self.mover = OSVehicle()
 
     gameobj.tank_count = gameobj.tank_count + 1
-    self.m_tanks = gameobj.tanks        -- useful for collisions/avoidance
     self.m_MyID = gameobj.tank_count
 
     -- // reset state
@@ -219,10 +218,14 @@ end
 -- Create some tanks that follow some paths.
 local function createTanks( gameobj )
     local tanks = {}
+    local tanksinit = {}
     for i=1, gamedata.max_tanks do 
-        table.insert( tanks, Tank(gameobj) )
+        local gotank = Tank(gameobj)    
+        table.insert( tanks, gotank )
+        table.insert( tanksinit, { id = gotank.m_MyID, start = gotank.dist, path = gotank.path } )
     end 
     gameobj.tanks = tanks
+    gameobj.init = tanksinit
 end
 
 ---------------------------------------------------------------------------------
@@ -293,10 +296,31 @@ warbattlempgame.run          = function( mod, frame, dt )
         else
             runGameStep( game, frame, dt )
         end
+        game.time = game.time + dt
     end
 end 
 
 
+---------------------------------------------------------------------------------
+-- Gets a cleaned up gameobject (less data)
+local function getGameObject(gameobj)
+
+    local slimobj = {
+        name        = gameobj.name,
+        gamename    = gameobj.gamename, 
+        maxsize     = gameobj.maxsize,
+        people      = gameobj.people,
+        owner       = gameobj.owner, 
+        private     = gameobj.private, 
+        state       = gameobj.state,
+        frame       = gameobj.frame,
+        time        = gameobj.time,
+
+        ws_port     = gameobj.ws_port,
+        init        = gameobj.init,  -- thuis should only happen at start or sync
+    }
+    return slimobj
+end 
 ---------------------------------------------------------------------------------
 -- Websocket is faster for realtime data
 --    The main game state (player, enemy and rockets) goes through here.
@@ -309,17 +333,24 @@ local function setupWebSocket(gameobj)
     gameobj.ws_port = 11000 + (allWSServersCount % warbattlempgame.max_games)
 
     local ws_server = WebSocket.server.new():listen(gameobj.ws_port)
+    ws_server.gameobj = gameobj
     print("[m.creategame] WebSocket server running on port "..gameobj.ws_port)
+
     ws_server:on("connect", function(client)
         print("[m.creategame] Client connected.")
-        client:send("random message")
+        client:send("Connect Handshake")
     end)
 
     ws_server:on("data", function(client, message)
-        print("[m.creategame] New data from client ", client)
-        print(message)
-        print("[m.creategame] Responding by mirroring")
-        client:send(message)
+        
+        -- decode message 
+        local event = message
+        print("[m.recvmsg] New data from client ", client)
+        p(event)
+        if(event == "REQUEST_ROUND") then 
+            local go = getGameObject( self.gameobj )
+            client:send(bitser.serialize(go))
+        end
     end)
 
     ws_server:on("disconnect", function(client)
@@ -345,8 +376,9 @@ warbattlempgame.creategame   = function( uid, name )
         owner       = uid, 
         private     = true, 
         state       = {},
-        frame       = 0,
 
+        frame       = 0,
+        time        = 0.0,
         tank_count  = 0,
     }
 
@@ -357,24 +389,6 @@ warbattlempgame.creategame   = function( uid, name )
     return gameobj
 end 
 
----------------------------------------------------------------------------------
--- Gets a cleaned up gameobject (less data)
-local function getGameObject(gameobj)
-
-    local slimobj = {
-        name        = gameobj.name,
-        gamename    = gameobj.gamename, 
-        maxsize     = gameobj.maxsize,
-        people      = gameobj.people,
-        owner       = gameobj.owner, 
-        private     = gameobj.private, 
-        state       = gameobj.state,
-        frame       = gameobj.frame,
-
-        ws_port     = gameobj.ws_port,
-    }
-    return slimobj
-end 
 
 ---------------------------------------------------------------------------------
 -- Update provides feedback data to an update request from a game client. 

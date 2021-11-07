@@ -70,9 +70,9 @@ local function getcookie( req, cookiename )
     for k,v in pairs(req.headers) do 
         if(v[1] == "Cookie") then cvalue = v[2]; break end
     end
-
+    
     if(cvalue) then 
-        local key, value = string.match(cvalue, "^(.+)=(.+)")
+        local key, value = string.match(cvalue, "([^=]+)=(.+)")
         if(key == cookiename) then return key, b64.decode(value) end 
     end
     return nil, nil 
