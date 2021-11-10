@@ -16,6 +16,8 @@ local server = nil
 
 -- Make a websocket to allow games to talk to clients faster/better
 WebSocket   = require("luvit-websocket")
+BinSer      = bser
+SFolk       = require("lua.smallfolk")
 
 OSVehicle   = require("lua.opensteer.os-simplevehicle")
 OSPathway   = require("lua.opensteer.os-pathway")

@@ -2,7 +2,6 @@
 ---------------------------------------------------------------------------------
 -- A name for the game. 
 local modulename        = "WarBattlesMP"
-local bitser            = require "lua.binser"
 
 -- General game operation:
 --    Drop in play. Can join any game any time. 
@@ -334,27 +333,29 @@ local function setupWebSocket(gameobj)
 
     local ws_server = WebSocket.server.new():listen(gameobj.ws_port)
     ws_server.gameobj = gameobj
-    print("[m.creategame] WebSocket server running on port "..gameobj.ws_port)
+    print("[setupWebSocket] WebSocket server running on port "..gameobj.ws_port)
 
     ws_server:on("connect", function(client)
-        print("[m.creategame] Client connected.")
+        print("[setupWebSocket] Client connected.")
         client:send("Connect Handshake")
     end)
 
     ws_server:on("data", function(client, message)
         
         -- decode message 
-        local event = message
-        print("[m.recvmsg] New data from client ", client)
-        p(event)
+        local evtdata = SFolk.loads(message)
+        local event = evtdata.event
         if(event == "REQUEST_ROUND") then 
-            local go = getGameObject( self.gameobj )
-            client:send(bitser.serialize(go))
+            p("[WS] Returning gameObject", event)
+            local go = getGameObject( ws_server.gameobj )
+            go.init = nil
+            local sdata = SFolk.dumps(go)
+            client:send(sdata)
         end
     end)
 
     ws_server:on("disconnect", function(client)
-        print("[m.creategame] Client " .. tostring(client.id) .. " disconnected.")
+        print("[setupWebSocket] Client " .. tostring(client.id) .. " disconnected.")
     end)
 
     allWSServers[gameobj.gamename] = ws_server

@@ -11,6 +11,29 @@ local b64 = require("base64")
 local sha1 = require("sha1")
 local string = require("string")
 
+local ffi = require("ffi")
+
+-- The Websocket data frame layout
+-- 0                   1                   2                   3
+-- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+-- +-+-+-+-+-------+-+-------------+-------------------------------+
+-- |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+-- |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+-- |N|V|V|V|       |S|             |   (if payload len==126/127)   |
+-- | |1|2|3|       |K|             |                               |
+-- +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+-- |     Extended payload length continued, if payload len == 127  |
+-- + - - - - - - - - - - - - - - - +-------------------------------+
+-- |                               |Masking-key, if MASK set to 1  |
+-- +-------------------------------+-------------------------------+
+-- | Masking-key (continued)       |          Payload Data         |
+-- +-------------------------------- - - - - - - - - - - - - - - - +
+-- :                     Payload Data continued ...                :
+-- + - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - +
+-- |                     Payload Data continued ...                |
+-- +---------------------------------------------------------------+
+
+
 string.split = function(inputstr, sep)
     if sep == nil then
         sep = "%s"
@@ -28,7 +51,6 @@ end
 exports.disassemblePacket = function(buffer)
     local bytemap = bytemap.fromString(buffer)
 
-
     -- flag evaluation
     local bitmap = bitmap.fromNumber(bytemap[1])
 
@@ -36,10 +58,23 @@ exports.disassemblePacket = function(buffer)
     local rsv1 = bitmap:isSet(2); rsv2 = bitmap:isSet(3); rsv3 = bitmap:isSet(4)
     local opcode = tonumber(bitmap[5] .. bitmap[6] .. bitmap[7] .. bitmap[8], 2)
 
+    local frag = nil 
+    print(fin, rsv1, rsv2, rsv3, opcode)
+
     -- message fragmentation check
-    if not fin then
-        print("WebSocket Error: Message Fragmentation not supported.")
-        return
+    -- Fragmentation start
+    if fin == false and opcode > 0 then
+        print("[FRAG START]", opcode)
+        frag = true
+    end
+    -- Fragmentation segment
+    if fin == false and opcode == 0 then
+        print("[FRAG FRAME]", opcode)
+        frag = true
+    end
+    if fin == true and opcode == 0 then
+        print("[FRAG FINISH]", opcode)
+        frag = nil
     end
 
     -- client request close
@@ -54,7 +89,6 @@ exports.disassemblePacket = function(buffer)
         bytemap[1] = bitmap:toNumber()
         return 1, bytemap:toString()
     end
-
 
     -- remove flags from bytemap
     bytemap:popStart()
@@ -89,31 +123,31 @@ exports.disassemblePacket = function(buffer)
         ret = ret .. string.char(bit.bxor(mask[i > 0 and i or 4], v))
     end)
 
-    return ret
+    return ret, frag
 end
 
 exports.assemblePacket = function(buffer)
     local flags = "10000001"
-    local bytemap = bytemap.new({tonumber(flags, 2), #buffer})
+    local bmap = bytemap.new({tonumber(flags, 2), #buffer})
     
-    if bytemap[2] >= 65536 then
-        local length = bytemap[2]
+    if bmap[2] >= 65536 then
+        local length = bmap[2]
         for i = 10, 3, -1 do
-            bytemap[i] = bit.band(length, 0xFF)
+            bmap[i] = bit.band(length, 0xFF)
             length = bit.rshift(length, 8)
         end
-        bytemap[2] = 127
-    elseif bytemap[2] >= 126 then
-        bytemap[4] = bit.band(bytemap[2], 0xFF)
-        bytemap[3] = bit.band(bit.rshift(bytemap[2], 8), 0xFF)
-        bytemap[2] = 126
+        bmap[2] = 127
+    elseif bmap[2] >= 126 then
+        bmap[4] = bit.band(bmap[2], 0xFF)
+        bmap[3] = bit.band(bit.rshift(bmap[2], 8), 0xFF)
+        bmap[2] = 126
     end
     for i = 1, #buffer do
-        bytemap:push(string.byte(buffer:sub(i, i)))
+        bmap:push(string.byte(buffer:sub(i, i)))
     end
 
     local ret = ""
-    bytemap:forEach(function(k,v)
+    bmap:forEach(function(k,v)
         ret = ret .. string.char(v)
     end)
 

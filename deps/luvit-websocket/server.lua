@@ -63,7 +63,7 @@ exports.new = function(func)
 					client:write(v)
 					client.oldBuffer = ""
 				elseif message then
-					t:call("data", client, message)
+					t:call("data", client, client.fragMessage or message)
 					client.oldBuffer = ""
 				else 
 					print("WebSocket Error: Could not parse message.")
@@ -84,6 +84,7 @@ exports.new = function(func)
 
 					client.startheader = false 
 					client.header = ""		
+					client.oldBuffer = ""
 				end
 			end 
 		end)
