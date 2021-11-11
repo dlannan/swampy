@@ -59,21 +59,21 @@ exports.disassemblePacket = function(buffer)
     local opcode = tonumber(bitmap[5] .. bitmap[6] .. bitmap[7] .. bitmap[8], 2)
 
     local frag = nil 
-    print(fin, rsv1, rsv2, rsv3, opcode)
+    --print(fin, rsv1, rsv2, rsv3, opcode)
 
     -- message fragmentation check
     -- Fragmentation start
     if fin == false and opcode > 0 then
-        print("[FRAG START]", opcode)
+        --print("[FRAG START]", opcode)
         frag = true
     end
     -- Fragmentation segment
     if fin == false and opcode == 0 then
-        print("[FRAG FRAME]", opcode)
+        --print("[FRAG FRAME]", opcode)
         frag = true
     end
     if fin == true and opcode == 0 then
-        print("[FRAG FINISH]", opcode)
+        --print("[FRAG FINISH]", opcode)
         frag = nil
     end
 

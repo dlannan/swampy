@@ -272,15 +272,10 @@ end
 local function runGameStep( game, frame, dt )
 
     game.frame = frame
-    checkState(game.state)
+    checkState(game)
 
-    if(game.state) then 
-        for i,v in ipairs(game.state) do 
-            
-            -- Do anything with states - collision, scoring.. etc
-            updateTanks(game, dt)
-        end 
-    end 
+    -- Do anything with states - collision, scoring.. etc
+    updateTanks(game, dt)
 end 
 
 ---------------------------------------------------------------------------------
@@ -311,7 +306,7 @@ local function getGameObject(gameobj)
         people      = gameobj.people,
         owner       = gameobj.owner, 
         private     = gameobj.private, 
-        state       = gameobj.state,
+        state       = gameobj.state or {},
         frame       = gameobj.frame,
         time        = gameobj.time,
 
@@ -337,20 +332,38 @@ local function setupWebSocket(gameobj)
 
     ws_server:on("connect", function(client)
         print("[setupWebSocket] Client connected.")
-        client:send("Connect Handshake")
     end)
 
     ws_server:on("data", function(client, message)
         
+        if(message == nil or #message < 10) then return end 
         -- decode message 
         local evtdata = SFolk.loads(message)
         local event = evtdata.event
-        if(event == "REQUEST_ROUND") then 
-            p("[WS] Returning gameObject", event)
+
+        if(event == "REQUEST_GAME") then
             local go = getGameObject( ws_server.gameobj )
             go.init = nil
-            local sdata = SFolk.dumps(go)
+            local msg = { event = event, data = go }
+            local sdata = SFolk.dumps(msg)
             client:send(sdata)
+        
+        elseif(event == "REQUEST_ROUND") then 
+            local go = getGameObject( ws_server.gameobj )
+            local msg = { event = event, data = go.state }
+            local sdata = SFolk.dumps(msg)
+            client:send(sdata)
+        
+        elseif(event == "REQUEST_PEOPLE") then 
+            local go = getGameObject( ws_server.gameobj )
+            local msg = { event = event, data = go.people }
+            local sdata = SFolk.dumps(msg)
+            client:send(sdata)
+        
+        elseif(event == "PLAYER_DATA") then 
+            evtdata.data.lt = (evtdata.data.lt or 0) + ws_server.gameobj.frame
+            evtdata.data.frame = ws_server.gameobj.frame
+            table.insert(ws_server.gameobj.state, evtdata.data)
         end
     end)
 
@@ -405,14 +418,6 @@ warbattlempgame.updategame   =  function( uid, name , body )
 
     -- Check if we have incoming game states
     if(body) then 
-        -- State from user has been sent. If lifetime is 0 or null, then clear at next step
-        if(body.uid and body.event == USER_EVENT.PLAYER_STATE) then 
-            if(body.state) then 
-                body.state.lt = (body.state.lt or 0) + game.frame
-                table.insert(game.state, body.state)
-                result = game.state
-            end
-        end 
         -- State from user has been sent. If lifetime is 0 or null, then clear at next step
         if(body.uid and body.event == USER_EVENT.REQUEST_GAME) then 
             result = getGameObject(game)
