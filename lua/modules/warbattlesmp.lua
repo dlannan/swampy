@@ -256,43 +256,17 @@ end
 local function checkState( game )
 
     if(game.state) then 
-        for i,v in ipairs(game.state) do 
+        for k,v in ipairs(game.state) do
+
             -- kill state if lifetime is old
             if(v and game.frame > v.lt) then 
                 table.remove(game.state, i)
-            end 
+            end         
         end 
         -- Allows client to sync to the module frame
         game.state.frame = game.frame
     end 
 end
-
----------------------------------------------------------------------------------
---    TODO: There may be a need to run this in a seperate Lua Env.
-local function runGameStep( game, frame, dt )
-
-    game.frame = frame
-    checkState(game)
-
-    -- Do anything with states - collision, scoring.. etc
-    updateTanks(game, dt)
-end 
-
----------------------------------------------------------------------------------
--- Main run loop for the module. 
---    There are no real restrictions here. If you lock the runtime,
---    This modules thread will lock. The server may kick the module.
-warbattlempgame.run          = function( mod, frame, dt )
-
-    for k, game in pairs(mod.data.games) do 
-        if(game == nil) then 
-            moduleError("Game Invalid: ", k) 
-        else
-            runGameStep( game, frame, dt )
-        end
-        game.time = game.time + dt
-    end
-end 
 
 
 ---------------------------------------------------------------------------------
@@ -315,6 +289,62 @@ local function getGameObject(gameobj)
     }
     return slimobj
 end 
+
+---------------------------------------------------------------------------------
+--    TODO: There may be a need to run this in a seperate Lua Env.
+local function runGameStep( game, frame, dt )
+
+    game.frame = frame
+
+    -- Do anything with states - collision, scoring.. etc
+    updateTanks(game, dt)
+ 
+    local msg = { event = "REQUEST_ROUND", data = game.state }
+    local rrdata = SFolk.dumps(msg)
+    local ws_server = allWSServers[game.gamename]
+    if(ws_server) then 
+        for i,client in ipairs(ws_server.clients) do
+            if(client) then 
+                client:send(rrdata)
+            end
+        end
+    end
+    -- checkState(game)
+    game.state = {}
+
+    if(frame % 5 == 0) then 
+        local msg = { event = "REQUEST_PEOPLE", data = game.people }
+        local rpdata = SFolk.dumps(msg)
+        
+        local ws_server = allWSServers[game.gamename]
+        if(ws_server) then 
+            for i,client in ipairs(ws_server.clients) do
+                if(client) then 
+                    client:send(rpdata)
+                end
+            end
+        end
+    end
+
+end 
+
+---------------------------------------------------------------------------------
+-- Main run loop for the module. 
+--    There are no real restrictions here. If you lock the runtime,
+--    This modules thread will lock. The server may kick the module.
+warbattlempgame.run          = function( mod, frame, dt )
+
+    for k, game in pairs(mod.data.games) do 
+        if(game == nil) then 
+            moduleError("Game Invalid: ", k) 
+        else
+            runGameStep( game, frame, dt )
+        end
+        game.time = game.time + dt
+    end
+end 
+
+
 ---------------------------------------------------------------------------------
 -- Websocket is faster for realtime data
 --    The main game state (player, enemy and rockets) goes through here.
@@ -337,7 +367,10 @@ local function setupWebSocket(gameobj)
     ws_server:on("data", function(client, message)
         
         if(message == nil or #message < 10) then return end 
+
+        --if(#message > 100) then p(#message, message) end
         -- decode message 
+
         local evtdata = SFolk.loads(message)
         local event = evtdata.event
 
@@ -347,19 +380,7 @@ local function setupWebSocket(gameobj)
             local msg = { event = event, data = go }
             local sdata = SFolk.dumps(msg)
             client:send(sdata)
-        
-        elseif(event == "REQUEST_ROUND") then 
-            local go = getGameObject( ws_server.gameobj )
-            local msg = { event = event, data = go.state }
-            local sdata = SFolk.dumps(msg)
-            client:send(sdata)
-        
-        elseif(event == "REQUEST_PEOPLE") then 
-            local go = getGameObject( ws_server.gameobj )
-            local msg = { event = event, data = go.people }
-            local sdata = SFolk.dumps(msg)
-            client:send(sdata)
-        
+
         elseif(event == "PLAYER_DATA") then 
             evtdata.data.lt = (evtdata.data.lt or 0) + ws_server.gameobj.frame
             evtdata.data.frame = ws_server.gameobj.frame
