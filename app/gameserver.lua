@@ -131,13 +131,13 @@ local function gameJoin( uid, name, ishost )
     udata.host = tostring(ishost or false)
 
     local sqlname, module = getSqlName(uid, name)
-    local servermodule = server.modules[module]
+    local smodule = server.modules[module]
 
     -- Check for a bunch of errors
-    if(servermodule == nil) then return nil end 
-    if(servermodule.data == nil) then return nil end 
-    if(servermodule.data.games == nil) then return nil end 
-    local gameinfo = getGameObject(servermodule.data.games[name])
+    if(smodule == nil) then return nil end 
+    if(smodule.data == nil) then return nil end 
+    if(smodule.data.games == nil) then return nil end 
+    local gameinfo = getGameObject(smodule.data.games[name])
     if(gameinfo == nil) then return nil end 
 
     if( gameCheckUser(uid, name) == nil ) then
@@ -157,8 +157,11 @@ local function gameJoin( uid, name, ishost )
         server.users[uid].gamename = name
         server.users[uid].loginstate = "JOINED"
         
-        servermodule.info.usercount = servermodule.info.usercount + 1
-        sqlapi.setModuleInfo(servermodule.info)
+        smodule.info.usercount = smodule.info.usercount + 1
+        sqlapi.setModuleInfo(smodule.info)
+
+        -- Notify the game a user has joined 
+        if(smodule.joingame) then smodule.joingame(uid, name) end
     end 
     local gameinfostr = json.encode(gameinfo)
 
@@ -244,8 +247,9 @@ local function gameLeave( uid, name )
 
     if(uid == nil) then return end
     local sqlname, module = getSqlName(uid, name)
-    if(sqlname == nil or module == nil) then return nil end 
-    if(server.modules[module] == nil) then return nil end
+    if(sqlname == nil or module == nil) then return nil end
+    local smodule = server.modules[module]
+    if(smodule == nil) then return nil end
 
     -- Deletion failure is not really an error - its means there is no table or lookup usually
     local sqlcmd = [[DELETE FROM ]]..sqlname..[[ WHERE userid="]]..uid..[["; ]]
@@ -258,7 +262,7 @@ local function gameLeave( uid, name )
     sqlapi.setTableValue( "TblUserAccts", "uid", uid, "loginstate", "WAITING")
 
     -- Remove person from people list
-    gameinfo = server.modules[module].data.games[name]
+    gameinfo = smodule.data.games[name]
     if(gameinfo == nil) then return end
     local newpeople = {}
     if(gameinfo.people) then 
@@ -276,8 +280,10 @@ local function gameLeave( uid, name )
         user.loginstate = "WAITING"
     end 
 
-    server.modules[module].info.usercount = server.modules[module].info.usercount - 1
-    sqlapi.setModuleInfo(server.modules[module].info)
+    smodule.info.usercount = smodule.info.usercount - 1
+    sqlapi.setModuleInfo(smodule.info)
+    if(smodule.leavegame) then smodule.leavegame(user.uid, name) end
+
     return result
 end
 
@@ -320,6 +326,8 @@ local function gameClose( uid, name )
     if(gameinfo and gameinfo.people) then 
         for k, user in pairs(gameinfo.people) do 
             gameLeave( user.uid, name )
+            -- Notify the game a user has joined 
+            if(smodule.leavegame) then smodule.leavegame(user.uid, name) end
         end 
     end 
 

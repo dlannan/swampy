@@ -291,15 +291,37 @@ local function getGameObject(gameobj)
 end 
 
 ---------------------------------------------------------------------------------
+-- When number of people change notify all clients 
+
+local function peopleChanged(game)
+
+    local msg = { event = "REQUEST_PEOPLE", data = game.people, time = game.time, frame = game.frame }
+    local rpdata = SFolk.dumps(msg)
+    
+    local ws_server = allWSServers[game.gamename]
+    if(ws_server) then 
+        for i,client in ipairs(ws_server.clients) do
+            if(client) then 
+                client:send(rpdata)
+            end
+        end
+    end
+end
+
+---------------------------------------------------------------------------------
 --    TODO: There may be a need to run this in a seperate Lua Env.
 local function runGameStep( game, frame, dt )
 
     game.frame = frame
 
     -- Do anything with states - collision, scoring.. etc
-    updateTanks(game, dt)
+    --updateTanks(game, dt)
  
-    local msg = { event = "REQUEST_ROUND", data = game.state }
+    -- Have to doa copy of state may be changed while we are sending to clients.
+    local laststate = game.state
+    game.state = {}
+
+    local msg = { event = "REQUEST_ROUND", data = laststate, time = game.time, frame = game.frame }
     local rrdata = SFolk.dumps(msg)
     local ws_server = allWSServers[game.gamename]
     if(ws_server) then 
@@ -310,22 +332,6 @@ local function runGameStep( game, frame, dt )
         end
     end
     -- checkState(game)
-    game.state = {}
-
-    if(frame % 5 == 0) then 
-        local msg = { event = "REQUEST_PEOPLE", data = game.people }
-        local rpdata = SFolk.dumps(msg)
-        
-        local ws_server = allWSServers[game.gamename]
-        if(ws_server) then 
-            for i,client in ipairs(ws_server.clients) do
-                if(client) then 
-                    client:send(rpdata)
-                end
-            end
-        end
-    end
-
 end 
 
 ---------------------------------------------------------------------------------
@@ -368,9 +374,10 @@ local function setupWebSocket(gameobj)
         
         if(message == nil or #message < 10) then return end 
 
-        --if(#message > 100) then p(#message, message) end
+        -- Large messages are ignored
+        if(#message > 500) then p(#message); return end
+        
         -- decode message 
-
         local evtdata = SFolk.loads(message)
         local event = evtdata.event
 
@@ -380,8 +387,15 @@ local function setupWebSocket(gameobj)
             local msg = { event = event, data = go }
             local sdata = SFolk.dumps(msg)
             client:send(sdata)
+        elseif(event == "REQUEST_PEOPLE") then
+            local game = getGameObject( ws_server.gameobj )           
+            peopleChanged(game)
 
-        elseif(event == "PLAYER_DATA") then 
+        elseif(event == "PLAYER_MOVE") then 
+            evtdata.data.lt = (evtdata.data.lt or 0) + ws_server.gameobj.frame
+            evtdata.data.frame = ws_server.gameobj.frame
+            table.insert(ws_server.gameobj.state, evtdata.data)
+        elseif(event == "PLAYER_SHOOT") then 
             evtdata.data.lt = (evtdata.data.lt or 0) + ws_server.gameobj.frame
             evtdata.data.frame = ws_server.gameobj.frame
             table.insert(ws_server.gameobj.state, evtdata.data)
@@ -435,7 +449,7 @@ warbattlempgame.updategame   =  function( uid, name , body )
 
     local result = nil
     -- -- Cleanup states in case there are old ones 
-    checkState( game )
+    --checkState( game )
 
     -- Check if we have incoming game states
     if(body) then 
@@ -456,6 +470,25 @@ warbattlempgame.updategame   =  function( uid, name , body )
     -- Return some json to players for updates 
     return result
 end 
+
+
+---------------------------------------------------------------------------------
+-- Called when a user joins a game. 
+warbattlempgame.joingame   =  function( uid, name )
+
+    -- get this game assuming you stored it :) and then do something 
+    local game =  warbattlempgame.data.games[name] 
+    if(game == nil) then return nil end 
+end
+
+---------------------------------------------------------------------------------
+-- Called when a user leaves a game 
+warbattlempgame.leavegame   =  function( uid, name )
+    
+    -- get this game assuming you stored it :) and then do something 
+    local game =  warbattlempgame.data.games[name] 
+    if(game == nil) then return nil end 
+end
 
 ---------------------------------------------------------------------------------
 return warbattlempgame

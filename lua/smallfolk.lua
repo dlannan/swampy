@@ -205,7 +205,7 @@ end
 
 function M.loads(string, maxsize)
 	if #string > (maxsize or 10000) then
-		error 'input too large'
+		error('input too large: '..tostring(maxsize or 10000))
 	end
 	return (expect_object(string, 1, {}))
 end
