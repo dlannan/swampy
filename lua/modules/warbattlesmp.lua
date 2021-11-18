@@ -302,7 +302,7 @@ local function peopleChanged(game)
     if(ws_server) then 
         for i,client in ipairs(ws_server.clients) do
             if(client) then 
-                client:send(rpdata)
+                WebSocket.libwebsock_send_text(client, rpdata)
             end
         end
     end
@@ -327,10 +327,12 @@ local function runGameStep( game, frame, dt )
     if(ws_server) then 
         for i,client in ipairs(ws_server.clients) do
             if(client) then 
-                client:send(rrdata)
+                WebSocket.libwebsock_send_text(client, rrdata)
             end
         end
+        WebSocket.libwebsock_wait(ws_server.server)
     end
+
     -- checkState(game)
 end 
 
@@ -350,7 +352,7 @@ warbattlempgame.run          = function( mod, frame, dt )
     end
 end 
 
-
+local ffi = require("ffi")
 ---------------------------------------------------------------------------------
 -- Websocket is faster for realtime data
 --    The main game state (player, enemy and rockets) goes through here.
@@ -362,51 +364,68 @@ local function setupWebSocket(gameobj)
     -- only allows 50 games on this server (minimise port usage)
     gameobj.ws_port = 11000 + (allWSServersCount % warbattlempgame.max_games)
 
-    local ws_server = WebSocket.server.new():listen(gameobj.ws_port)
-    ws_server.gameobj = gameobj
+    local ws = { clients = {}, gameobj = gameobj } 
+    local WS_NONBLOCK = 0x02
+    ws.server = WebSocket.libwebsock_init_flags(WS_NONBLOCK)
+    if(ws.server == nil) then print("Error during libwebsock_init.") return end
+    WebSocket.libwebsock_bind( ws.server, "0.0.0.0", tostring(gameobj.ws_port))
     print("[setupWebSocket] WebSocket server running on port "..gameobj.ws_port)
 
-    ws_server:on("connect", function(client)
+    ws.server.onopen = function(client)
+        table.insert(ws.clients, client)
         print("[setupWebSocket] Client connected.")
-    end)
+        return 0
+    end
 
-    ws_server:on("data", function(client, message)
+    -- ws.server.control_callback = function(client, frame) 
+    --     p(client, frame)
+    --     return 0
+    -- end
+
+    ws.server.onmessage = function(client, ws_data)
         
-        if(message == nil or #message < 10) then return end 
+        local message = ffi.string( ws_data.payload, ws_data.payload_len)
+        print("[MESSAGE]", message)
+        if(message == nil or #message < 10) then return 0 end 
 
         -- Large messages are ignored
-        if(#message > 500) then p(#message); return end
+        if(#message > 500) then p(#message); return 0 end
         
         -- decode message 
         local evtdata = SFolk.loads(message)
         local event = evtdata.event
 
         if(event == "REQUEST_GAME") then
-            local go = getGameObject( ws_server.gameobj )
+            local go = getGameObject( ws.gameobj )
             go.init = nil
             local msg = { event = event, data = go }
             local sdata = SFolk.dumps(msg)
-            client:send(sdata)
+            WebSocket.libwebsock_send_text(client, sdata)
+
         elseif(event == "REQUEST_PEOPLE") then
-            local game = getGameObject( ws_server.gameobj )           
+            local game = getGameObject( ws.gameobj )           
             peopleChanged(game)
 
         elseif(event == "PLAYER_MOVE") then 
-            evtdata.data.lt = (evtdata.data.lt or 0) + ws_server.gameobj.frame
-            evtdata.data.frame = ws_server.gameobj.frame
-            table.insert(ws_server.gameobj.state, evtdata.data)
+            evtdata.data.lt = (evtdata.data.lt or 0) + ws.gameobj.frame
+            evtdata.data.frame = ws.gameobj.frame
+            table.insert(ws.gameobj.state, evtdata.data)
         elseif(event == "PLAYER_SHOOT") then 
-            evtdata.data.lt = (evtdata.data.lt or 0) + ws_server.gameobj.frame
-            evtdata.data.frame = ws_server.gameobj.frame
-            table.insert(ws_server.gameobj.state, evtdata.data)
+            evtdata.data.lt = (evtdata.data.lt or 0) + ws.gameobj.frame
+            evtdata.data.frame = ws.gameobj.frame
+            table.insert(ws.gameobj.state, evtdata.data)
         end
-    end)
+        return 0
+    end
 
-    ws_server:on("disconnect", function(client)
+    ws.server.onclose = function(client)
         print("[setupWebSocket] Client " .. tostring(client.id) .. " disconnected.")
-    end)
+        return 0
+    end
 
-    allWSServers[gameobj.gamename] = ws_server
+    WebSocket.libwebsock_wait(ws.server)
+
+    allWSServers[gameobj.gamename] = ws
     allWSServersCount = allWSServersCount + 1
 end
 

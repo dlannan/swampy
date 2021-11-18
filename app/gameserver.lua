@@ -14,8 +14,13 @@ local sqlapi= require "lua.sqlapi"
 
 local server = nil 
 
+ffi.cdef[[
+    void usleep( unsigned int tm );
+]]
+
 -- Make a websocket to allow games to talk to clients faster/better
-WebSocket   = require("luvit-websocket")
+WebSocket   = require("libwebsocket")
+USleep      = ffi.C.usleep
 BinSer      = bser
 SFolk       = require("lua.smallfolk")
 
