@@ -302,7 +302,7 @@ local function peopleChanged(game)
     if(ws_server) then 
         for i,client in ipairs(ws_server.clients) do
             if(client) then 
-                WebSocket.libwebsock_send_text(client, rpdata)
+                WebSocket.send_text(client, rpdata)
             end
         end
     end
@@ -327,10 +327,9 @@ local function runGameStep( game, frame, dt )
     if(ws_server) then 
         for i,client in ipairs(ws_server.clients) do
             if(client) then 
-                WebSocket.libwebsock_send_text(client, rrdata)
+                WebSocket.send_text(client, rrdata)
             end
         end
-        WebSocket.libwebsock_wait(ws_server.server)
     end
 
     -- checkState(game)
@@ -365,10 +364,7 @@ local function setupWebSocket(gameobj)
     gameobj.ws_port = 11000 + (allWSServersCount % warbattlempgame.max_games)
 
     local ws = { clients = {}, gameobj = gameobj } 
-    local WS_NONBLOCK = 0x02
-    ws.server = WebSocket.libwebsock_init_flags(WS_NONBLOCK)
-    if(ws.server == nil) then print("Error during libwebsock_init.") return end
-    WebSocket.libwebsock_bind( ws.server, "0.0.0.0", tostring(gameobj.ws_port))
+    ws.server = WebSocket.init()
     print("[setupWebSocket] WebSocket server running on port "..gameobj.ws_port)
 
     ws.server.onopen = function(client)
@@ -400,7 +396,7 @@ local function setupWebSocket(gameobj)
             go.init = nil
             local msg = { event = event, data = go }
             local sdata = SFolk.dumps(msg)
-            WebSocket.libwebsock_send_text(client, sdata)
+            WebSocket.send_text(client, sdata)
 
         elseif(event == "REQUEST_PEOPLE") then
             local game = getGameObject( ws.gameobj )           
@@ -423,7 +419,7 @@ local function setupWebSocket(gameobj)
         return 0
     end
 
-    WebSocket.libwebsock_wait(ws.server)
+    WebSocket.bind(ws.server, gameobj.ws_port, "0.0.0.0")
 
     allWSServers[gameobj.gamename] = ws
     allWSServersCount = allWSServersCount + 1

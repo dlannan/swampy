@@ -19,7 +19,8 @@ ffi.cdef[[
 ]]
 
 -- Make a websocket to allow games to talk to clients faster/better
-WebSocket   = require("libwebsocket")
+WebSocket   = require("websocket.server")
+
 USleep      = ffi.C.usleep
 BinSer      = bser
 SFolk       = require("lua.smallfolk")
@@ -74,6 +75,7 @@ local function init( gserver, tbls )
 
     if(server == nil) then server = gserver end
     run_exec = sqlapi.run_exec
+
 end
 
 ---------------------------------------------------------------------------------
