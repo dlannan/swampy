@@ -642,7 +642,7 @@ local function updateModules()
     for k, module in pairs(server.modules) do 
         if(module) then 
             module.info.uptime = module.info.uptime + UPDATE_TICKS   -- secs
-            module.run(module, server.frame, UPDATE_TICKS) 
+            module.run(module, server.frame, UPDATE_RATE) 
         end 
     end 
 

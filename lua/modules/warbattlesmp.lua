@@ -302,7 +302,7 @@ local function peopleChanged(game)
     if(ws_server) then 
         for i,client in ipairs(ws_server.clients) do
             if(client) then 
-                WebSocket.send_text(client, rpdata)
+                client:send(rpdata)
             end
         end
     end
@@ -310,6 +310,7 @@ end
 
 ---------------------------------------------------------------------------------
 --    TODO: There may be a need to run this in a seperate Lua Env.
+--   dt is in milliseconds
 local function runGameStep( game, frame, dt )
 
     game.frame = frame
@@ -327,7 +328,7 @@ local function runGameStep( game, frame, dt )
     if(ws_server) then 
         for i,client in ipairs(ws_server.clients) do
             if(client) then 
-                WebSocket.send_text(client, rrdata)
+                client:send(rrdata)
             end
         end
     end
@@ -339,6 +340,7 @@ end
 -- Main run loop for the module. 
 --    There are no real restrictions here. If you lock the runtime,
 --    This modules thread will lock. The server may kick the module.
+--   dt is in milliseconds
 warbattlempgame.run          = function( mod, frame, dt )
 
     for k, game in pairs(mod.data.games) do 
@@ -363,30 +365,25 @@ local function setupWebSocket(gameobj)
     -- only allows 50 games on this server (minimise port usage)
     gameobj.ws_port = 11000 + (allWSServersCount % warbattlempgame.max_games)
 
-    local ws = { clients = {}, gameobj = gameobj } 
-    ws.server = WebSocket.init()
+    local ws = WebSocket.create()
+    ws.gameobj = gameobj 
     print("[setupWebSocket] WebSocket server running on port "..gameobj.ws_port)
 
-    ws.server.onopen = function(client)
-        table.insert(ws.clients, client)
+    ws:on("onopen", function(client)
+        
         print("[setupWebSocket] Client connected.")
         return 0
-    end
+    end)
 
-    -- ws.server.control_callback = function(client, frame) 
-    --     p(client, frame)
-    --     return 0
-    -- end
-
-    ws.server.onmessage = function(client, ws_data)
+    ws:on("onmessage", function(client, message)
         
-        local message = ffi.string( ws_data.payload, ws_data.payload_len)
         print("[MESSAGE]", message)
-        if(message == nil or #message < 10) then return 0 end 
 
+        -- Tiny messages ignored
+        if(message == nil or #message < 10) then return 0 end 
         -- Large messages are ignored
         if(#message > 500) then p(#message); return 0 end
-        
+
         -- decode message 
         local evtdata = SFolk.loads(message)
         local event = evtdata.event
@@ -396,7 +393,7 @@ local function setupWebSocket(gameobj)
             go.init = nil
             local msg = { event = event, data = go }
             local sdata = SFolk.dumps(msg)
-            WebSocket.send_text(client, sdata)
+            client:send(sdata)
 
         elseif(event == "REQUEST_PEOPLE") then
             local game = getGameObject( ws.gameobj )           
@@ -406,20 +403,21 @@ local function setupWebSocket(gameobj)
             evtdata.data.lt = (evtdata.data.lt or 0) + ws.gameobj.frame
             evtdata.data.frame = ws.gameobj.frame
             table.insert(ws.gameobj.state, evtdata.data)
+
         elseif(event == "PLAYER_SHOOT") then 
             evtdata.data.lt = (evtdata.data.lt or 0) + ws.gameobj.frame
             evtdata.data.frame = ws.gameobj.frame
             table.insert(ws.gameobj.state, evtdata.data)
         end
         return 0
-    end
+    end)
 
-    ws.server.onclose = function(client)
+    ws:on("onclose", function(client)
         print("[setupWebSocket] Client " .. tostring(client.id) .. " disconnected.")
         return 0
-    end
+    end)
 
-    WebSocket.bind(ws.server, gameobj.ws_port, "0.0.0.0")
+    ws:listen(gameobj.ws_port, "0.0.0.0")
 
     allWSServers[gameobj.gamename] = ws
     allWSServersCount = allWSServersCount + 1
