@@ -32,7 +32,7 @@ local function send_frame( client, data )
     local outlen = wslib.WEBSOCKET_set_content( strdata, #data, tmpdata, 4096 )
     local outdata = ffi.string(tmpdata, outlen)
 
-    client:write(tostring(outdata))
+    client:write(outdata)
 end
 
 -- ---------------------------------------------------------------------------------

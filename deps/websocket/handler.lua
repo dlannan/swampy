@@ -197,7 +197,7 @@ local function processWebSocket( t, client, data )
     if(data) then client.ws_buffer = client.ws_buffer..data end
 
     local msg, state = wslib.recvframe( client, client.ws_buffer )
-    print(#data, #msg,  #client.ws_buffer)
+    --p(#data, #msg, state)
 
     -- Something went wrong - close, or an unknown error - reset things
     if(msg == nil) then 
@@ -237,7 +237,6 @@ local function processWebSocket( t, client, data )
         -- If the data is ok to send to user then..
         if(state.opcode == 1 or state.opcode == 2) then
             if(state.fin == 1) then 
-                p("[BUFFER START]", state, msg)
                 t:call("onmessage", client, msg)
                 client.ws_buffer = ""
             end
