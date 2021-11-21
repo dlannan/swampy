@@ -383,6 +383,7 @@ local function setupWebSocket(gameobj)
 
     ws:on("onmessage", function(client, message)
 
+        print("[WB MESSAGE] ", message)
         -- Tiny messages ignored
         if(message == nil or #message < 10) then return 0 end 
         -- Large messages are ignored

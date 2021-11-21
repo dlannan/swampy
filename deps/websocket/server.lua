@@ -103,14 +103,12 @@ local function createServer( options, func )
             client:_end()
         end)
 
-        client:on("data",function(data)
+        client:on("data", function(data)
 
             client.send = function(self, data)
-				handler.webDataWrite(client, data)
-			end
-            
+                handler.webDataWrite(client, data)
+            end
             handler.webDataProcess(t, client, data)
-            -- client:write(data)
         end)
 
 		local function onTimeout()
@@ -124,10 +122,15 @@ local function createServer( options, func )
 		process:once('exit', onTimeout)
 		client:setTimeout(1800000)
 
-        client:on("end",function()
-            client.mode = nil
+        client:on("close", function()
+            t:call("onclose", client)
+            print("Client disconnected")
+			t.clients[client.id or 0] = nil
+    		process:removeListener('exit', onTimeout)
+        end)
 
-			t:call("onclose", client)
+        client:on("end", function()
+            t:call("onclose", client)
             print("Client disconnected")
 			t.clients[client.id or 0] = nil
     		process:removeListener('exit', onTimeout)

@@ -26,6 +26,7 @@ local wslib = require("websocket.websocket")
 --    |                     Payload Data continued ...                |
 --    +---------------------------------------------------------------+
 
+local buffers = {}
 
 -- ---------------------------------------------------------------------------------
 -- Decode the frame and return the state and the data
@@ -80,8 +81,12 @@ end
 
 -- ---------------------------------------------------------------------------------
 
-local function webSocketHandshake( data )
+local function newwebSocketHandshake( data )
 
+    return wslib.handshake( data )
+end
+
+local function webSocketHandshake( data )
     local lines = utils.split(data, '\r\n')
     local title = lines[1]
     lines[1] = nil
@@ -149,63 +154,147 @@ end
 
 -- ---------------------------------------------------------------------------------
 
-local function webDataProcess( t, client, data )
+local function processStart( t, client, data )
 
     -- Check for initiation of websocket 
-    if(client.mode == nil and string.sub(data, 1,3 ) == "GET") then 
-
-        client.mode = "method-get"
-        if(#data < 10) then return end 
+    if(string.sub(data, 1,3 ) == "GET") then 
+        client.mode = "handshake"
+        client.ws_buffer = data 
     end 
+end 
 
-    if( client.mode == "method-get" ) then 
+-- ---------------------------------------------------------------------------------
 
-        client.buffer = client.buffer or "" 
-        client.buffer = client.buffer..data 
+local function processHandShake( t, client, data )
 
-        -- Check if data has a \r\n\r\n on the end 
-        local buffertail = string.sub(client.buffer, -4, -1)
-        if( buffertail == "\r\n\r\n" ) then 
+    client.ws_buffer = client.ws_buffer..data
 
-            p("[HANDSHAKE] ", client.buffer)
-            client.mode = "handshake"
+    -- Check if data has a \r\n\r\n on the end 
+    local buffertail = string.sub(client.ws_buffer, -4, -1)
+    if( buffertail == "\r\n\r\n" ) then 
 
-            -- Open a connection
-            client:write( webSocketHandshake( client.buffer ) )
-            t:call("onopen", client)
+        -- Send handshake response
+        client:write( webSocketHandshake( client.ws_buffer ) )
+        t:call("onopen", client)
 
-            table.insert(t.clients, client)
-            -- Check for existing clients
-            for k,v in pairs(t.clients) do
-                if v == client then
-                    client.id = k
-                end
+        table.insert(t.clients, client)
+        -- Check for existing clients
+        for k,v in pairs(t.clients) do
+            if v == client then
+                client.id = k
             end
-
-            client.mode = "websocket"
-            client.buffer = ""
-        end 
-
-    -- In websocket mode - decode then pass on
-    elseif (client.mode == "websocket") then 
-
-        local msg, state = wslib.recvframe( client, data )
-p(msg, state)
-        -- If the data is ok to send to user then..
-        if(state.opcode == 1 or state.opcode == 2) and state.fin == 1 then 
-            t:call("onmessage", client, msg)
         end
 
-        if(state.opcode == 8) then 
+        client.mode = "websocket"
+        client.ws_buffer = ""
+    end 
+end
+
+-- ---------------------------------------------------------------------------------
+
+local function processWebSocket( t, client, data )
+
+    if(data) then client.ws_buffer = client.ws_buffer..data end
+
+    local msg, state = wslib.recvframe( client, client.ws_buffer )
+    print(#data, #msg,  #client.ws_buffer)
+
+    -- Something went wrong - close, or an unknown error - reset things
+    if(msg == nil) then 
+
+        t:call("onclose", client)
+        client.ws_buffer   = ""
+        client.mode     = nil
+        t.clients[client.id or 0] = nil
+
+    -- A Ping was requested by client, we send a Pong
+    elseif(state.opcode == 9) then 
+            client:write(msg or "")
+            client.ws_buffer   = ""
+
+    -- A close was requested from client
+    elseif(state.opcode == 8) then 
             t:call("onclose", client)
+            client.ws_buffer   = ""
+            client.mode     = nil
             t.clients[client.id or 0] = nil
+
+    -- Check the processed data matches the packet_length returned
+    elseif( state.packet_length <= #msg ) then 
+
+    -- Determine fragmented frames and handle differently
+    -- fragmented = state
+    -- if(state.fin == 1 and state.opcode ~= 0) then 
+    --     fragmented = nil
+    -- end
+
+    -- Deal with fragmented frames - coalesce them together into the client buffer
+    -- if(fragmented) then 
+    --     client.mode = "fragmented"
+    --     client.ws_buffer = client.ws_buffer..(msg or "")
+    -- else 
+    
+        -- If the data is ok to send to user then..
+        if(state.opcode == 1 or state.opcode == 2) then
+            if(state.fin == 1) then 
+                p("[BUFFER START]", state, msg)
+                t:call("onmessage", client, msg)
+                client.ws_buffer = ""
+            end
         end
+    end 
+end
 
-        if(state.opcode == 9) then 
-            client:write(msg)
-            client.oldBuffer = ""
+-- ---------------------------------------------------------------------------------
+
+local function processFragment( t, client, data )
+
+    local msg, state = wslib.recvframe( client, data )
+    --p('[WS DATA] ', data, state)
+    if(msg == nil) then 
+        client.mode = "websocket"
+    else 
+
+        if( state.fin == 0 and state.opcode ~= 0 ) then 
+
+            client.ws_buffer = client.ws_buffer..msg
+        elseif( state.fin == 0 and state.opcode == 0 ) then 
+
+            client.ws_buffer = client.ws_buffer..msg
+        -- Fragment complete
+        elseif( state.fin == 1 and state.opcode == 0 ) then
+
+            client.ws_buffer = client.ws_buffer..msg
+            t:call("onmessage", client, client.ws_buffer)
+            client.ws_buffer = ""
+            client.mode = "websocket"
         end 
+    end
+end
 
+-- ---------------------------------------------------------------------------------
+
+local function webDataProcess( t, client, data )
+
+    if(client.id == nil) then client.id = math.floor(os.clock() * 10000) end
+
+    -- Quickly determine course of action
+    -- 1. is this handshake data - wait until end
+    -- 2. is this a frame - collect data (until next valid frame) 
+    -- 3. is this data (frame or handshake) add to buffer
+
+    if(client.mode == nil) then 
+
+        processStart( t, client, data )
+    elseif(client.mode == "handshake") then 
+
+        processHandShake( t, client, data )
+    elseif(client.mode == "websocket") then
+
+        processWebSocket( t, client, data )
+    elseif(client.mode == "fragment") then 
+
+        processFragment( t, client, data )
     end 
 end 
 
