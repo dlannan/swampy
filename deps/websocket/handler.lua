@@ -81,12 +81,12 @@ end
 
 -- ---------------------------------------------------------------------------------
 
-local function newwebSocketHandshake( data )
+local function webSocketHandshake( data )
 
     return wslib.handshake( data )
 end
 
-local function webSocketHandshake( data )
+local function oldwebSocketHandshake( data )
     local lines = utils.split(data, '\r\n')
     local title = lines[1]
     lines[1] = nil

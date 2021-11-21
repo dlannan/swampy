@@ -18,7 +18,7 @@ local function hand_shake( data )
 
     local dlen = wslib.WEBSOCKET_generate_handshake( data, tmpdata, 4096 )
     local retstr = ffi.string(tmpdata, dlen)
-    return tostring(resstr)
+    return tostring(retstr)
 end
 
 -- ---------------------------------------------------------------------------------
