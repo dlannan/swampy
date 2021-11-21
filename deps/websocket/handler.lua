@@ -194,6 +194,8 @@ end
 
 local function processWebSocket( t, client, data )
 
+    -- We dont allow more than 1K packets. That coul;d be configurable if needed
+    if(#client.ws_buffer > 1024) then client.ws_buffer = "" end 
     if(data) then client.ws_buffer = client.ws_buffer..data end
 
     local msg, state = wslib.recvframe( client, client.ws_buffer )
@@ -209,15 +211,17 @@ local function processWebSocket( t, client, data )
 
     -- A Ping was requested by client, we send a Pong
     elseif(state.opcode == 9) then 
-            client:write(msg or "")
-            client.ws_buffer   = ""
+    
+        client:write(msg or "")
+        client.ws_buffer   = ""
 
     -- A close was requested from client
     elseif(state.opcode == 8) then 
-            t:call("onclose", client)
-            client.ws_buffer   = ""
-            client.mode     = nil
-            t.clients[client.id or 0] = nil
+
+        t:call("onclose", client)
+        client.ws_buffer   = ""
+        client.mode     = nil
+        t.clients[client.id or 0] = nil
 
     -- Check the processed data matches the packet_length returned
     elseif( state.packet_length <= #msg ) then 
