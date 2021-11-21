@@ -365,7 +365,13 @@ local function setupWebSocket(gameobj)
     -- only allows 50 games on this server (minimise port usage)
     gameobj.ws_port = 11000 + (allWSServersCount % warbattlempgame.max_games)
 
-    local ws = WebSocket.create()
+    local options = {
+        ssl     = true,
+        key     = ReadFileSync("./keys/privkey.pem"),
+        cert    = ReadFileSync("./keys/cert.pem"),
+    }
+
+    local ws = WebSocket.create( options )
     ws.gameobj = gameobj 
     print("[setupWebSocket] WebSocket server running on port "..gameobj.ws_port)
 

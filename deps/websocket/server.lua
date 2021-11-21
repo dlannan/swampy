@@ -79,20 +79,33 @@ local function createServer( options, func )
 	    end
 	end
 
-    t.server = net.createServer(options, function(client)
+    local function createServerInternal(lopts, callback)
+
+        if(lopts.ssl) then 
+            return tls.createServer(lopts, function (socket)
+                return callback(socket)
+            end)
+        else 
+            return net.createServer(lopts, callback)
+        end
+    end
+
+    t.server = createServerInternal(options, function(client)
+
+        -- p("[CLIENT] ", client)
 
         -- Add some listenners for incoming connection
-        client:on("error",function(err)
+        client:on("error", function(err)
             print("Client read error: ")
             p(err)
 			client.mode = nil
-            t:call("onopen", client)
-            client:close()
+            t:call("onerror", client)
+            client:_end()
         end)
 
         client:on("data",function(data)
 
-			client.send = function(self, data)
+            client.send = function(self, data)
 				handler.webDataWrite(client, data)
 			end
             

@@ -29,11 +29,19 @@ local function recv_frame( client, data )
     local strdata = ffi.new("char[?]", #data)
     ffi.copy(strdata, ffi.string(data, #data), #data)
     local tmpdata = ffi.new("unsigned char[4096]")
+    local hdr = ffi.new("unsigned char[2]")
 
-    local inlen = wslib.WEBSOCKET_get_content( strdata, #data, tmpdata, 4096 )
+    local inlen = wslib.WEBSOCKET_get_content( strdata, #data, tmpdata, 4096, hdr )
 
-    if(inlen < 0) then return nil end
-    return ffi.string(tmpdata, inlen) 
+    local state = {
+        fin = bit.band(hdr[0], 8),
+        opcode = bit.band(hdr[0], 127),
+        resv = bit.band(bit.rshift(hdr[0], 4), 7)
+    }
+
+    if(inlen < 0) then return nil, state end
+    local msg = ffi.string(tmpdata, inlen)
+    return msg, state  
 end
 
 -- ---------------------------------------------------------------------------------

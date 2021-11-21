@@ -154,45 +154,57 @@ local function webDataProcess( t, client, data )
     -- Check for initiation of websocket 
     if(client.mode == nil and string.sub(data, 1,3 ) == "GET") then 
 
-        client.mode = "handshake"
+        client.mode = "method-get"
         if(#data < 10) then return end 
     end 
 
-    -- In handshake mode. 
-    if( client.mode == "handshake" ) then 
-        -- Open a connection
-        client:write( webSocketHandshake( data ) )
-        t:call("onopen", client)
+    if( client.mode == "method-get" ) then 
 
-        table.insert(t.clients, client)
-        -- Check for existing clients
-        for k,v in pairs(t.clients) do
-            if v == client then
-                client.id = k
+        client.buffer = client.buffer or "" 
+        client.buffer = client.buffer..data 
+
+        -- Check if data has a \r\n\r\n on the end 
+        local buffertail = string.sub(client.buffer, -4, -1)
+        if( buffertail == "\r\n\r\n" ) then 
+
+            p("[HANDSHAKE] ", client.buffer)
+            client.mode = "handshake"
+
+            -- Open a connection
+            client:write( webSocketHandshake( client.buffer ) )
+            t:call("onopen", client)
+
+            table.insert(t.clients, client)
+            -- Check for existing clients
+            for k,v in pairs(t.clients) do
+                if v == client then
+                    client.id = k
+                end
             end
-        end
 
-        client.mode = "websocket"
+            client.mode = "websocket"
+            client.buffer = ""
+        end 
 
     -- In websocket mode - decode then pass on
     elseif (client.mode == "websocket") then 
 
-        local msg = wslib.recvframe( client, data )
-        if msg == nil then return end
+        local msg, state = wslib.recvframe( client, data )
+p(msg, state)
         -- If the data is ok to send to user then..
-        --if(state.opcode == 1 or state.opcode == 2) and state.fin == 1 then 
+        if(state.opcode == 1 or state.opcode == 2) and state.fin == 1 then 
             t:call("onmessage", client, msg)
-        --end
+        end
 
-        -- if(state.opcode == 8) then 
-        --     t:call("onclose", client)
-        --     t.clients[client.id or 0] = nil
-        -- end
+        if(state.opcode == 8) then 
+            t:call("onclose", client)
+            t.clients[client.id or 0] = nil
+        end
 
-        -- if(state.opcode == 9) then 
-        --     client:write(msg)
-        --     client.oldBuffer = ""
-        -- end 
+        if(state.opcode == 9) then 
+            client:write(msg)
+            client.oldBuffer = ""
+        end 
 
     end 
 end 

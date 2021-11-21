@@ -11,6 +11,7 @@ local utils = require("lua.utils")
 local bser  = require("lua.binser")
 
 local sqlapi= require "lua.sqlapi"
+local fs    = require('fs')
 
 local server = nil 
 
@@ -20,6 +21,7 @@ ffi.cdef[[
 
 -- Make a websocket to allow games to talk to clients faster/better
 WebSocket   = require("websocket.server")
+ReadFileSync = function( fname ) return fs.readFileSync( fname ) end
 
 USleep      = ffi.C.usleep
 BinSer      = bser
