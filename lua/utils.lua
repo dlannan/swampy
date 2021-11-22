@@ -114,12 +114,13 @@ end
 
 ---------------------------------------------------------------------------------
 
-local function sendpreflight( res )
+local function sendpreflight( req, res )
 
-    res.statusCode = 200
+    res.statusCode = 204
+    res:setHeader("Allow", "OPTIONS, GET, HEAD, POST")
     res:setHeader("Access-Control-Allow-Origin", "*")
-    res:setHeader("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, token, authorization")
-    res:setHeader("Access-Control-Allow-Methods", "GET, POST,OPTIONS")
+    res:setHeader("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Origin, Accept, token, authorization")
+    res:setHeader("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS")
     res:setHeader("Authorization", nil)
     res:finish()
 end 

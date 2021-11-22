@@ -247,17 +247,19 @@ local function handleAPIEndpoints( client, req, res, body )
 
     local handled = nil
     local handleFunc = EndpointAPITbl[funcpath]
-    local output = ""
+    local output    = ""
+    local mode      = "html"
     if(handleFunc) then 
         if(req.method == "OPTIONS") then -- preflight call - return ok
-
-            utils.sendpreflight( res )
-            output = nil
+            output  = ""
+            mode    = "preflight"
         else 
-            output = handleFunc( client, req, res, body ); handled = true 
+            output = handleFunc( client, req, res, body )
+            mode    = "json"
+            handled = true 
         end 
     end 
-    return handled, output
+    return handled, output, mode
 end
 
 ---------------------------------------------------------------------------------
@@ -274,8 +276,14 @@ local function processRequest(req, res, body)
 
     -- Api calls always first. These fan out - when a game starts then it handles its sockets
     if( string.match(req.url, "^/api/v1/") ) then 
-        local handled, outjson = handleAPIEndpoints(client, req, res, body)
-        if(outjson) then utils.sendjson(res, outjson) end
+        local handled, output, mode = handleAPIEndpoints(client, req, res, body)
+        if(mode == "json") then 
+            utils.sendjson(res, output) 
+        elseif(mode == "preflight") then 
+            utils.sendpreflight( req, res )
+        elseif(mode == "html" and output) then 
+            utils.sendhtml( res, output )
+        end
         return -- Always exit with api calls
     end
 

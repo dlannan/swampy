@@ -29,41 +29,6 @@ local wslib = require("websocket.websocket")
 local buffers = {}
 
 -- ---------------------------------------------------------------------------------
--- Decode the frame and return the state and the data
-
-local function webSocketEncode( data )
-
-    local buffer = ""
-    -- Fin + Opcode 1
-    buffer = buffer..string.char(0x81)
-    local len = #data
-    --print(len, data)
-
-    local lendata = { [1] = len }
-    if len >= 65536 then
-        for i = 10, 3, -1 do
-            lendata[i-1] = bit.band(len, 0xFF)
-            len = bit.rshift(len, 8)
-        end
-        lendata[1] = 127
-    elseif len >= 126 then
-        lendata[3] = bit.band(len, 0xFF)
-        lendata[2] = bit.band(bit.rshift(len, 8), 0xFF)
-        lendata[1] = 126
-    end
-
-    for i = 1, #lendata do 
-        buffer = buffer..string.char(lendata[i])
-    end 
-
-    for i = 1, #data do
-        buffer = buffer..data:sub(i, i)
-    end
-
-    return buffer
-end 
-
--- ---------------------------------------------------------------------------------
 
 local function webDataSend( data )
 
@@ -81,76 +46,10 @@ end
 
 -- ---------------------------------------------------------------------------------
 
-local function webSocketHandshake( data )
+local function webSocketHandshake( client, data )
 
-    return wslib.handshake( data )
+    wslib.handshake( client, data )
 end
-
-local function oldwebSocketHandshake( data )
-    local lines = utils.split(data, '\r\n')
-    local title = lines[1]
-    lines[1] = nil
-    local data = {}
-
-    for k,v in pairs(lines) do
-      if #v > 2 then
-        local line = utils.split(v, ": ")
-        data[line[1]] = line[2]
-      end
-    end
-
-    local responseKey = data["Sec-WebSocket-Key"] .. '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-    responseKey = b64.encode(tostring(sha1.binary(responseKey)))
-    
-    return  "HTTP/1.1 101 Switching Protocols\r\n"
-          .."Connection: Upgrade\r\n"
-          .."Upgrade: websocket\r\n"
-          .."Sec-WebSocket-Accept: " .. responseKey .. "\r\n"
-          .."\r\n"
-end
-
--- ---------------------------------------------------------------------------------
--- Decode the frame and return the state and the data
-
-local function webSocketDecode( data )
-
-    local buffer = data
-    local state = { opcode = nil, fin = nil, mask = nil }
-    -- Check for commands. Ping/Pong commands specifically 
-    local opcode = bit.band( buffer:byte(1), 15 )
-
-    state.opcode = opcode 
-    state.fin = bit.band( buffer:byte(1), 128)
-    state.mask = bit.band( buffer:byte(2), 128)
-
-    if(opcode == 9) then 
-
-        local bdata = ffi.string(data, #data)
-        bdata[0] = 0x8A
-        return bdata, state
-    end
-
-    local len = bit.band( buffer:byte(2), 127)
-    if (len == 126) then 
-        masks = string.sub(buffer, 5, 9)
-        data  = string.sub(buffer, 9, -1)
-    else 
-        if (len == 127) then
-            masks = string.sub(buffer, 11, 15)
-            data  = string.sub(buffer, 19, -1)
-        else 
-            masks = string.sub(buffer, 3, 7)
-            data  = string.sub(buffer, 7)
-        end
-    end
-
-    local decoded = ""
-    for index = 0, #data-1 do
-        decoded = decoded .. string.char(bit.bxor(data:byte(index + 1), masks:byte((index % 4) + 1)))
-    end
-    
-    return decoded, state
-end 
 
 -- ---------------------------------------------------------------------------------
 
@@ -174,7 +73,7 @@ local function processHandShake( t, client, data )
     if( buffertail == "\r\n\r\n" ) then 
 
         -- Send handshake response
-        client:write( webSocketHandshake( client.ws_buffer ) )
+        webSocketHandshake( client, client.ws_buffer )
         t:call("onopen", client)
 
         table.insert(t.clients, client)
