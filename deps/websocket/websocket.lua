@@ -14,9 +14,8 @@ local function hand_shake( client, data )
     ffi.fill(tmpdata, 4096)
 
     local dlen = wslib.WEBSOCKET_generate_handshake( strdata, tmpdata, 4096 )
-    local outstr = ""
+    local outstr = ffi.string("")
     if( dlen > 0 ) then  outstr = ffi.string(tmpdata, dlen) end
-
     client:write( tostring(outstr) )
 end
 

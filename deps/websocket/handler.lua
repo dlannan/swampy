@@ -53,20 +53,7 @@ end
 
 -- ---------------------------------------------------------------------------------
 
-local function processStart( t, client, data )
-
-    -- Check for initiation of websocket 
-    if(string.sub(data, 1,3 ) == "GET") then 
-        client.mode = "handshake"
-        client.ws_buffer = data 
-    end 
-end 
-
--- ---------------------------------------------------------------------------------
-
-local function processHandShake( t, client, data )
-
-    client.ws_buffer = client.ws_buffer..data
+local function checkHandshake( t, client )
 
     -- Check if data has a \r\n\r\n on the end 
     local buffertail = string.sub(client.ws_buffer, -4, -1)
@@ -87,6 +74,26 @@ local function processHandShake( t, client, data )
         client.mode = "websocket"
         client.ws_buffer = ""
     end 
+end
+
+-- ---------------------------------------------------------------------------------
+
+local function processStart( t, client, data )
+
+    -- Check for initiation of websocket 
+    if(string.sub(data, 1,3 ) == "GET") then 
+        client.mode = "handshake"
+        client.ws_buffer = data 
+        checkHandshake(t, client)
+    end 
+end 
+
+-- ---------------------------------------------------------------------------------
+
+local function processHandShake( t, client, data )
+
+    client.ws_buffer = client.ws_buffer..data
+    checkHandshake( t, client )
 end
 
 -- ---------------------------------------------------------------------------------
