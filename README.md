@@ -41,6 +41,12 @@ stack traceback:
         [string "bundle:deps/require.lua"]:310: in function <[string "bundle:deps/require.lua"]:266>
 ```
 
+If you have a local server and you need to generate the privkey and fullchain. Use the following:
+```
+openssl genrsa > privkey.pem
+openssl req -new -x509 -key privkey.pem > fullchain.pem
+```
+
 ## Admin 
 
 The first time you access the admin, it will use your login and password credentials and create 
