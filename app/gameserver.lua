@@ -353,8 +353,11 @@ local function gameUpdate( uid, name, body )
     local user, module = gameCheckUser( uid, name)
     if(module == nil) then return nil end
 
-    if(body) then body = bser.deserialize(body)[1] end
-    if(body.state) then body.state = bser.deserialize(body.state)[1] end
+    local tempbody = nil
+    if(body) then tempbody = bser.deserialize(body)[1] end
+    if(tempbody) then 
+        if(body.state) then body.state = bser.deserialize(body.state)[1] end
+    end
 
     local gameinfotbl = server.modules[module].updategame(uid, name, body)
     local gameinfostr = bser.serialize(gameinfotbl)
