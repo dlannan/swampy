@@ -5,21 +5,25 @@ local tinsert   = table.insert
 local json      = require "lua.json"
 local api       = require "lua.module-api"
 
-local rounds    = require "lua.modules.soulsurvivor-rounds"
+local rounds    = require "lua.modules.soulsurvivor.soulsurvivor-rounds"
 
 local sqlapi    = require "lua.sqlapi"
 local games     = require "app.gameserver"
+
+---------------------------------------------------------------------------------
+-- A name for the game. 
+local modulename        = "SoulSurvivor"
 
 ---------------------------------------------------------------------------------
 -- Update this module with info about numebr of games, users and activity
 -- Go through games and update their states
 -- 
 
-local MODULEDB_FILE      = "./data/soulsurvivor.sqlite3"
-local MAXIMUM_GAMESIZE   = 10
-local USER_TIMEOUT       = 10       -- Ten seconds timeout (default is 120)
+local MODULEDB_FILE     = "./data/soulsurvivor.sqlite3"
+local MAXIMUM_GAMESIZE  = 10
+local USER_TIMEOUT      = 10       -- Ten seconds timeout (default is 120)
 
-local SERVER_FILE     = "./data/ss.sqlite3"
+local SERVER_FILE       = "./data/ss.sqlite3"
 
 local SQLITE_TABLES = {
     ["persons"]      = { create = "desc TEXT, theme TEXT" },
@@ -30,42 +34,31 @@ local SQLITE_TABLES = {
 ---------------------------------------------------------------------------------
 
 local soulsurvivor = {
-    info    = {
-        name        = "soulsurvivor",
-        usercount   = 0,
-        gamecount   = 0, 
-        activity    = 0, 
-        dataread    = 0,
-        datawrite   = 0,
-        uptime      = 0,
-        lastupdate  = 0.0,
-    },     
-    data    = {
-        games   = {},     -- running games using this module
-        users   = {},     -- available logged in users
-        updates = {},     -- updates queued in order by timestamp sent
-    },
-    
-    sqltables = SQLITE_TABLES,
 
-    USER_TIMEOUT    = USER_TIMEOUT
+    USER_TIMEOUT    = 120,      
+    name            = modulename,      
+    
+    sqltables       = SQLITE_TABLES,
+
+    USER_TIMEOUT    = USER_TIMEOUT,
+    max_games       = 50,
 }
 
 ---------------------------------------------------------------------------------
 -- A sql db is used for the game module. 
 
-local function initModule(module)
+local function initModule()
 
-    if(args[2] == "rebuild") then 
-        os.execute("rm "..MODULEDB_FILE)
-    end 
+    -- if(args[2] == "rebuild") then 
+    --     os.execute("rm "..MODULEDB_FILE)
+    -- end 
 
     soulsurvivor.prevconn = sqlapi.getConn()
-    soulsurvivor.conn = sqlapi.init(MODULEDB_FILE, SQLITE_TABLES)
+    -- soulsurvivor.conn = sqlapi.init(MODULEDB_FILE, SQLITE_TABLES)
 
     sqlapi.checkTables( SQLITE_TABLES )
     if(args[2] == "rebuild") then 
-        sqlapi.importJSONFile( "./data/import.json" )
+        sqlapi.importJSONFile( "./data/soulsurvivor-import.json" )
     end
 
     -- restore sql conn
@@ -163,6 +156,26 @@ local function runModule( mod, frame, dt )
 end 
 
 ---------------------------------------------------------------------------------
+-- Gets a cleaned up gameobject (less data)
+local function getGameObject(gameobj)
+
+    local gameobj = {
+        name        = gameobj.name,
+        gamename    = gameobj.gamename, 
+        maxsize     = gameobj.maxsize,
+        people      = gameobj.people,
+        owner       = gameobj.owner, 
+        private     = gameobj.private, 
+        state       = gameobj.state or {},
+        frame       = gameobj.frame,
+        time        = gameobj.time,
+
+        ws_port     = gameobj.ws_port,
+    }
+    return gameobject
+end 
+
+---------------------------------------------------------------------------------
 
 local function createGame( uid, name )
 
@@ -211,9 +224,9 @@ end
 ---------------------------------------------------------------------------------
 
 local function updateGame( uid, name, body )
-    
-    local game = soulsurvivor.data.games[name]
-    if(game == nil) then return nil end
+
+    local gameobj = soulsurvivor.data.games[name]
+    if(gameobj == nil) then return nil end
 
     local res = nil 
     -- Check all the incoming data we care about. 
@@ -221,15 +234,14 @@ local function updateGame( uid, name, body )
         local data = json.decode(body)
 
         if(data.state == rounds.GAME_STATE.EXIT) then 
-            print("EXITING GAME")
-            res = closeGame( game, uid, name )
+            print("[ updateGame ] EXITING GAME")
+            res = closeGame( gameobj, uid, name )
         end
 
         -- Handle different updates as per user update. Must be in correct state or
         --    update is ignored!
-        if(game.round and data and type(data) == "table") then 
-
-            res = rounds.processround(game, data)
+        if(gameobj.round and data and type(data) == "table") then 
+            res = rounds.processround(gameobj, data)
         end 
     end 
 
@@ -256,7 +268,7 @@ soulsurvivor.run         = runModule
 soulsurvivor.creategame  = createGame
 soulsurvivor.updategame  = updateGame
 
-soulsurvivor.gettables   = getTables
+-- soulsurvivor.gettables   = getTables
 
 return soulsurvivor
 

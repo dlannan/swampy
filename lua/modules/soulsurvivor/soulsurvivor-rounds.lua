@@ -112,7 +112,7 @@ local function newround(game, roundno, state)
 	local round = {
 
         round           = roundno,    -- Always start round at "joining"
-        gamename        = game.name,
+        gamename        = game.gamename,
 
 		playercards	    = 4,
 		playercount     = 2,
@@ -219,7 +219,7 @@ local function checkround( game, round, data )
 
     -- if(game.state ~= data.state) then return nil end 
     if(data.uid == nil) then log("data.uid == nil"); return nil end 
-    if(round.gamename ~= data.name) then log("round.gamename ~= data.name"); return nil end 
+    if(round.gamename ~= data.name) then log("round.gamename ~= data.name  ("..tostring(round.gamename).."  "..tostring(data.name)..")"); return nil end 
     if(round.round ~= data.round) then log("round.round ~= data.round") end -- non fatal
     if(os.time() - data.timestamp > MAXIMUM_REQUEST_DELAY) then log("Timestamp longer than MAXIMUM_REQUEST_DELAY"); return nil end 
     if(USER_EVENT_RL[data.event] == nil) then log("Data event not found: "..tostring(data.event)); return nil end

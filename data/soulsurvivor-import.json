@@ -1,0 +1,59 @@
+[
+    {
+      "dbname": "persons", 
+      "data": [
+        { "desc": "Chef", "theme": "none" },
+        { "desc": "Personal Trainer", "theme": "none" },
+        { "desc": "Surfer", "theme": "none" },
+        { "desc": "Bus Driver", "theme": "none" },
+        { "desc": "Teacher", "theme": "none" },
+        { "desc": "Journalist", "theme": "none" },
+        { "desc": "Doctor", "theme": "none" },
+        { "desc": "Teen Baby Sitter", "theme": "none" },
+        { "desc": "Hairdresser", "theme": "none" },
+        { "desc": "Nurse", "theme": "none" },
+        { "desc": "Garbo", "theme": "none" },
+        { "desc": "Visionary/Entrepenuer", "theme": "none" },
+        { "desc": "WWE Fighter", "theme": "none" },
+        { "desc": "Stay at home Mum Blogger", "theme": "none" }
+      ]
+    },
+    {
+      "dbname": "traits",
+      "data":[
+        { "desc": "Who can talk backwards", "theme": "none" },
+        { "desc": "Who is addicted to vitamin pills", "theme": "none" },
+        { "desc": "Who wears turleneck sweaters", "theme": "none" },
+        { "desc": "Who constantly farts", "theme": "none" },
+        { "desc": "Who refuses to talk to anyone", "theme": "none" },
+        { "desc": "Who walks in circles", "theme": "none" },
+        { "desc": "Who contantly hums the Simpons theme song", "theme": "none" },
+        { "desc": "Who wears no pants", "theme": "none" },
+        { "desc": "Who can play the piano", "theme": "none" },
+        { "desc": "Who has a third nipple on their forehead", "theme": "none" },
+        { "desc": "Who has an annoyingly high pitched voice", "theme": "none" },
+        { "desc": "Who skips whereever theuy go", "theme": "none" },
+        { "desc": "Who can only see in black and white", "theme": "none" },
+        { "desc": "Who lives as a head in a jar", "theme": "none" }
+      ]
+    },
+    {
+      "dbname": "scenarios",
+      "data":[
+        { "desc": "The leader has burnt themselves making cupcakes, who is the best to help", "theme": "zombie" },
+        { "desc": "To try and keep the group cool, you need someone to fetch water from the nearby river","theme": "zombie" },
+        { "desc": "A rival group has arrived with weapons demanding a sacrifice, who do you choose","theme": "zombie" },
+        { "desc": "A wandering dog has joined the group, who is best to look after it","theme": "zombie" },
+        { "desc": "The kids are needing education, we need someone to teach them sciences","theme": "zombie" },
+        { "desc": "A mystery food source has been found, but the group needs someone to test it","theme": "zombie" },
+        { "desc": "The leaders brother has been chained up by another group, send someone to save him","theme": "zombie" },
+        { "desc": "You need someone to dig a new latrine","theme": "zombie" },
+        { "desc": "A wild storm is approaching, but one of the roof hatches is busted loose. Who do you send to fix it.","theme": "zombie" },
+        { "desc": "A wild deer has been found and is only attracted to people wearing tar and feathers, who do you send to catch it","theme": "zombie" },
+        { "desc": "Love is in the air, you need a person to marry a couple","theme": "zombie" },
+        { "desc": "A trader has come to town, who can best trade with them","theme": "zombie" },
+        { "desc": "The group is becoming sullen, we need an entertainer to brighten the mood","theme": "zombie" },
+        { "desc": "People in the group have formed a band, but they need a drummer. Who is best for this", "theme": "zombie" }
+      ]
+    }
+  ]

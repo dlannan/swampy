@@ -183,7 +183,6 @@ end
 --    As players join/leave rows are inserted/removed
 local function gameCreate( uid, name )
 
-    print(uid, name)
     -- Clear name so it has no spaces, symbols etc 
     name = name:match("%w+")
     local sqlname, module = getSqlName(uid, name)
@@ -353,15 +352,15 @@ local function gameUpdate( uid, name, body )
     local user, module = gameCheckUser( uid, name)
     if(module == nil) then return nil end
 
-    local tempbody = nil
-    if(body) then tempbody = bser.deserialize(body)[1] end
-    if(tempbody) then 
-        if(body.state) then body.state = bser.deserialize(body.state)[1] end
-    end
+    -- local tempbody = nil
+    -- if(body) then tempbody = bser.deserialize(body)[1] end
+    -- if(tempbody) then 
+    --     if(body.state) then body.state = bser.deserialize(body.state)[1] end
+    -- end
 
     local gameinfotbl = server.modules[module].updategame(uid, name, body)
-    local gameinfostr = bser.serialize(gameinfotbl)
-    return gameinfostr
+    -- local gameinfostr = bser.serialize(gameinfotbl)
+    return gameinfotbl
 end
 
 --------------------------------------------------------------------------------

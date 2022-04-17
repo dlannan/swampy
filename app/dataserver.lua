@@ -184,6 +184,7 @@ local function initModule( mod )
     sqlapi.setConn(mod.sql.prevconn)
 
     initModuleSql(mod)
+    if(mod.init and type(mod.init) == "function") then mod.init() end
 end 
 
 ---------------------------------------------------------------------------------
@@ -221,8 +222,8 @@ local function init( varg )
 
             if(v ~= '') then 
                 -- Try requiring the module
-                local basename = string.match(v, "^(.*).lua")
-                local ismod = require("lua.modules."..basename)
+                local basename = string.match(v, "^(.*)")
+                local ismod = require("lua.modules."..basename.."."..basename)
                 if(ismod.name) then 
                     server.modules[ismod.name] = ismod 
                 end

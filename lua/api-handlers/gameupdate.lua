@@ -35,6 +35,5 @@ api_gameUpdate = function( client, req, res, body )
             outjson = json.encode( { result = tblstr, status = "OK" } )
         end
     end
-
     return outjson
 end 
