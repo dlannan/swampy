@@ -108,10 +108,11 @@ local function newround(game, roundno, state)
 
     roundno = roundno or 0
     state = state or GAME_STATE.JOINING
+    p("Rounds: ", tostring(roundno)) 
 
 	local round = {
 
-        round           = roundno,    -- Always start round at "joining"
+        round           = tonumber(roundno),    -- Always start round at "joining"
         gamename        = game.gamename,
 
 		playercards	    = 4,
@@ -130,7 +131,7 @@ local function newround(game, roundno, state)
 	}
 
     -- Game retains the current round id
-    game.round           = round.round
+    game.round           = tonumber(round.round)
 
     -- All traits and persons are pooled here. 
     --   When a trait and person is selected it is removed from the pool
@@ -220,7 +221,7 @@ local function checkround( game, round, data )
     -- if(game.state ~= data.state) then return nil end 
     if(data.uid == nil) then log("data.uid == nil"); return nil end 
     if(round.gamename ~= data.name) then log("round.gamename ~= data.name  ("..tostring(round.gamename).."  "..tostring(data.name)..")"); return nil end 
-    if(round.round ~= data.round) then log("round.round ~= data.round") end -- non fatal
+    if(round.round ~= data.round) then log("round.round ~= data.round ("..tostring(round.round).."  "..tostring(data.round)..")") end -- non fatal
     if(os.time() - data.timestamp > MAXIMUM_REQUEST_DELAY) then log("Timestamp longer than MAXIMUM_REQUEST_DELAY"); return nil end 
     if(USER_EVENT_RL[data.event] == nil) then log("Data event not found: "..tostring(data.event)); return nil end
 
