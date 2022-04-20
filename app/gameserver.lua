@@ -326,9 +326,10 @@ local function gameClose( uid, name )
     if(sqlname == nil or module == nil) then return nil end 
     if(server.modules[module] == nil) then return nil end
 
-    server.modules[module].info.gamecount = server.modules[module].info.gamecount - 1
+    local smodule = server.modules[module]
+    smodule.info.gamecount =smodule.info.gamecount - 1
     sqlapi.setModuleInfo(server.modules[module].info)
-    local gameinfo = server.modules[module].data.games[name]
+    local gameinfo = smodule.data.games[name]
 
     -- if there are people connected, then make them leave
     if(gameinfo and gameinfo.people) then 
@@ -340,7 +341,7 @@ local function gameClose( uid, name )
     end 
 
     gameRemove(sqlname)
-    server.modules[module].data.games[name] = nil
+    smodule.data.games[name] = nil
     return res
 end
 

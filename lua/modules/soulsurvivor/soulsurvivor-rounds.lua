@@ -104,11 +104,10 @@ end
 
 -- ---------------------------------------------------------------------------
 
-local function newround(game, roundno, state)
+local function newround(game, roundno, state, oldround)
 
     roundno = roundno or 0
     state = state or GAME_STATE.JOINING
-    p("Rounds: ", tostring(roundno)) 
 
 	local round = {
 
@@ -152,6 +151,11 @@ local function newround(game, roundno, state)
     end
     
     round.roundid = game.name..string.format("%02d", round.round)
+    if(oldround) then 
+        round.cards = oldround.cards 
+        round.judge = oldround.judge
+    end 
+
     rounds[round.roundid] = round 
 
     selections[round.roundid] = {}
@@ -221,7 +225,7 @@ local function checkround( game, round, data )
     -- if(game.state ~= data.state) then return nil end 
     if(data.uid == nil) then log("data.uid == nil"); return nil end 
     if(round.gamename ~= data.name) then log("round.gamename ~= data.name  ("..tostring(round.gamename).."  "..tostring(data.name)..")"); return nil end 
-    if(round.round ~= data.round) then log("round.round ~= data.round ("..tostring(round.round).."  "..tostring(data.round)..")") end -- non fatal
+    -- if(round.round ~= data.round) then log("round.round ~= data.round ("..tostring(round.round).."  "..tostring(data.round)..")") end -- non fatal
     if(os.time() - data.timestamp > MAXIMUM_REQUEST_DELAY) then log("Timestamp longer than MAXIMUM_REQUEST_DELAY"); return nil end 
     if(USER_EVENT_RL[data.event] == nil) then log("Data event not found: "..tostring(data.event)); return nil end
 
@@ -617,13 +621,10 @@ local function processnextround( game, round, data )
         round.judge = round.judge + 1
         if(round.judge > utils.tcount( game.people )) then round.judge = 1 end 
 
-        local nr = newround(game, game.round + 1, round.gamestate)
-        nr.cards = round.cards 
-        nr.judge = round.judge
+        newround(game, game.round + 1, round.gamestate, round)
 
         game.state = GAME_STATE.GAME_SCENARIO
         game.phasetime = TIMEOUT_SCENARIO
-        game.phasetime = 0
         for k,v in pairs(game.people) do v.state = USER_EVENT.NONE end     
     end 
     return OK_TABLE
@@ -647,7 +648,7 @@ local function processround( game, data )
 
     local roundid = game.name..string.format("%02d", game.round)
     local round = rounds[roundid]
-    if(round == nil) then p(rounds); return nil end 
+    if(round == nil) then p(rounds); return nil end
 
     -- Incoming data is a user submission which has a strict format. See top.
     if(checkround( game, round, data ) == nil) then return nil end
