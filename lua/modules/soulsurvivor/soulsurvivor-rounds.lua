@@ -243,11 +243,11 @@ local function setup( module, game )
     
 	-- local left = self.width * 0.5 - 170 * self.scale	
 	-- self.playercard_move = { pos = left }	
-    sqlapi.setConn(module.conn)
+    sqlapi.setConn(module.sql.conn)
     if(dbscenarios == nil) then dbscenarios = sqlapi.getTable( "scenarios" ) end 
     if(dbpersons == nil) then dbpersons = sqlapi.getTable( "persons" ) end 
     if(dbtraits == nil) then dbtraits = sqlapi.getTable( "traits" ) end 
-    sqlapi.setConn(module.prevconn)
+    sqlapi.setConn(module.sql.prevconn)
 end
 
 -- ---------------------------------------------------------------------------
@@ -570,7 +570,6 @@ end
 local function finalisecards(game, round, data)
 
     local allmycards = pools[game.name].mycards[data.uid]
-
     -- remove cards that lost
     for k,v in pairs(selections[round.roundid]) do 
         if(k ~= round.verdict) then 
@@ -582,11 +581,13 @@ local function finalisecards(game, round, data)
                 end 
             end 
             for i, vv in ipairs(marked) do 
-                allmycards[vv] = nil 
+                tremove(allmycards, vv)
             end 
+
         end 
     end  
     pools[game.name].mycards[data.uid] = allmycards
+    round.cards = allmycards
 end
 
 -- ---------------------------------------------------------------------------
@@ -597,7 +598,7 @@ local function processnextround( game, round, data )
     local pcount = utils.tcount(game.people)
     if(data.event == USER_EVENT.REQUEST_WAITING) then 
 
-        --finalisecards(game, round, data)
+        finalisecards(game, round, data)
         setUserWaiting(game, data.uid)
     end 
 
@@ -609,7 +610,6 @@ local function processnextround( game, round, data )
 
     -- Everyone waiting
     if(waiting == pcount) then 
-
 
         -- check if only one player with cards? If so winner.. else keep going
 

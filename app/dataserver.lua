@@ -616,7 +616,7 @@ local function userUpdateName( uid, playername, lang )
 
     -- If the user is in a game, update game details
     local user = server.users[uid]
-    if(user.gamename) then 
+    if(user and user.gamename) then 
         local gameinfo = server.modules[user.module].data.games[user.gamename]
         if(gameinfo and gameinfo.people) then 
             for k,v in ipairs(gameinfo.people) do 
