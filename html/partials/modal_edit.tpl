@@ -17,7 +17,7 @@
           <div class="form-group">
             <label>Module Script</label>
 <div id="module-editor">
-{{include: 'lua/modules/mygame.lua'}}
+{{include: 'lua/modules/mygame/mygame.lua'}}
 </div>
           </div>
           <div class="form-group">

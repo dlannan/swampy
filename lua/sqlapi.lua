@@ -114,6 +114,18 @@ local function getTable( name, limit )
     return jsontbl
 end
 
+
+---------------------------------------------------------------------------------
+
+local function dropTable( tblname )
+    local droptblstr = "DROP TABLE IF EXISTS '%s';"
+    local status, result = pcall( run_exec, string.format(droptblstr, tblname) ) 
+    if(status == false or result == nil) then 
+        -- dont really care if it fails, it means the db is broken.
+        p("[Sql database corrupt] Cannot drop table: ", tblname)
+    end 
+end
+
 ---------------------------------------------------------------------------------
 
 local function setTable( name, data )
@@ -159,12 +171,15 @@ end
 local function insertTableRow( tblname, rowdata )
 
     local cols = utils.tcount(rowdata)
-    local stmt = conn:prepare([[INSERT INTO ]]..tblname..[[ VALUES(]]..string.rep("?,", cols-1)..[[ ?);]])
+    local cmd = [[INSERT INTO ]]..tblname..[[ VALUES(]]..string.rep("?,", cols-1)..[[ ?);]]
+    local stmt = conn:prepare(cmd)
     
     if(rowdata == nil) then return nil end   
     local results = {}
     stmt:reset()
-    for i,v in ipairs(rowdata) do stmt:bind1(i, v) end
+    for i,v in ipairs(rowdata) do 
+        stmt:bind1(i, v) 
+    end
     stmt:step()
     stmt:close()
     tinsert(results, "OK")
@@ -212,7 +227,6 @@ local function importJSON( jsondata )
     -- Iterate expected format. 
     --   Array of objects, each object with a dbname, and data, Some data having multiple properties.
     for idx, dbobj in pairs(jsontbl) do 
-
         if(dbobj.dbname and dbobj.data) then 
 
             for k,v in pairs(dbobj.data) do
@@ -242,6 +256,7 @@ return {
     getConn         = getConn,
     run_exec        = run_exec,
 
+    dropTable       = dropTable,
     checkTable      = checkTable, 
     checkTables     = checkTables,
     getTable        = getTable,

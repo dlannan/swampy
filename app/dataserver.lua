@@ -184,7 +184,8 @@ local function initModule( mod )
     sqlapi.setConn(mod.sql.prevconn)
 
     initModuleSql(mod)
-    if(mod.init and type(mod.init) == "function") then mod.init() end
+    if(mod.init and type(mod.init) == "function") then mod.init(mod) end
+    mod.gettables()
 end 
 
 ---------------------------------------------------------------------------------

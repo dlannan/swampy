@@ -19,7 +19,7 @@ local modulename        = "SoulSurvivor"
 -- Go through games and update their states
 -- 
 
-local MODULEDB_FILE     = "./data/soulsurvivor.sqlite3"
+local MODULEDB_FILE     = "soulsurvivor"
 local MAXIMUM_GAMESIZE  = 10
 local USER_TIMEOUT      = 10       -- Ten seconds timeout (default is 120)
 
@@ -47,22 +47,29 @@ local soulsurvivor = {
 ---------------------------------------------------------------------------------
 -- A sql db is used for the game module. 
 
-local function initModule()
+local function initModule(mod)
 
-    -- if(args[2] == "rebuild") then 
-    --     os.execute("rm "..MODULEDB_FILE)
-    -- end 
-
-    soulsurvivor.prevconn = sqlapi.getConn()
-    -- soulsurvivor.conn = sqlapi.init(MODULEDB_FILE, SQLITE_TABLES)
-
-    sqlapi.checkTables( SQLITE_TABLES )
     if(args[2] == "rebuild") then 
-        sqlapi.importJSONFile( "./data/soulsurvivor-import.json" )
-    end
 
-    -- restore sql conn
-    sqlapi.setConn(soulsurvivor.prevconn)
+        mod.sql.prevconn = sqlapi.getConn()
+        sqlapi.setConn(mod.sql.conn)
+
+        -- First drop any tables that are named same. 
+        for k,v in pairs(mod.sqltables) do
+            sqlapi.dropTable( k )
+        end 
+
+        p("Removing old sqldb.")
+        os.execute("rm "..MODULEDB_FILE)
+    
+        sqlapi.checkTables(mod.sqltables)
+
+        p("Importing sqldb.")
+        sqlapi.importJSONFile( "./data/soulsurvivor-import.json" )
+        
+        -- restore sql conn
+        sqlapi.setConn(mod.sql.prevconn)
+    end
 end 
 
 ---------------------------------------------------------------------------------
@@ -254,7 +261,9 @@ local function getTables( )
 
     sqlapi.setConn(soulsurvivor.conn)
     local jsontbl = {}
+    p(soulsurvivor.conn)
     for k ,v in pairs(SQLITE_TABLES) do
+        p(k, tablelimit)
         local tbl = sqlapi.getTable( k, tablelimit )
         jsontbl[k] = tbl
     end
