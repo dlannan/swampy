@@ -26,9 +26,9 @@ local USER_TIMEOUT      = 10       -- Ten seconds timeout (default is 120)
 local SERVER_FILE       = "./data/ss.sqlite3"
 
 local SQLITE_TABLES = {
-    ["persons"]      = { create = "desc TEXT, theme TEXT" },
-    ["traits"]       = { create = "desc TEXT, theme TEXT" },
-    ["scenarios"]    = { create = "desc TEXT, theme TEXT" },
+    ["persons"]      = { create = "desc TEXT, theme TEXT", cols = { "desc", "theme" } },
+    ["traits"]       = { create = "desc TEXT, theme TEXT", cols = { "desc", "theme" } },
+    ["scenarios"]    = { create = "desc TEXT, theme TEXT", cols = { "desc", "theme" } },
 }
 
 ---------------------------------------------------------------------------------
@@ -67,6 +67,7 @@ local function initModule(mod)
         p("Importing sqldb.")
         sqlapi.importJSONFile( "./data/soulsurvivor-import.json" )
         
+        sqlapi.getTableColumns("persons")
         -- restore sql conn
         sqlapi.setConn(mod.sql.prevconn)
     end

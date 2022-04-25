@@ -89,10 +89,31 @@ end
 -- TABLES
 ---------------------------------------------------------------------------------
 
+local function getTableColumns( tblname )
+    if(tblname == nil) then 
+        p("[Sql GetTableColumns Error] No table name provided.")
+        return {}
+    end 
+    local sqlcmd = [[SELECT name, type FROM PRAGMA_TABLE_INFO(']]..tblname..[[');]]
+
+    local tablenames = {}
+    local tbl, rowcount = conn:exec(sqlcmd)
+    if(rowcount == 0 or tbl == nil or tbl.name == nil) then 
+        p("[Sql GetTableColumns Error] No names.")
+        return tablenames
+    end
+    for k,v in ipairs(tbl.name) do
+        tinsert(tablenames, { name = v, type = tbl.type[k] })
+    end
+    return tablenames
+end 
+
+---------------------------------------------------------------------------------
+
 local function getTable( name, limit )
 
     if(name == nil) then 
-        p("[Sql GetTable Error] No table anme provided.")
+        p("[Sql GetTable Error] No table name provided.")
         return {}
     end 
 
@@ -259,6 +280,7 @@ return {
     dropTable       = dropTable,
     checkTable      = checkTable, 
     checkTables     = checkTables,
+    getTableColumns = getTableColumns,
     getTable        = getTable,
     setTable        = setTable,
     setTableValue   = setTableValue,
