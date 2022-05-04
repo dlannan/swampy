@@ -1,10 +1,11 @@
 local tinsert 	= table.insert
 local tremove 	= table.remove
-local tcount 	= table.getn
 
 local sqlapi    = require "lua.sqlapi"
 local utils     = require "lua.utils"
 local json      = require "lua.json"
+
+local tcount 	= utils.tcount
 
 -- ---------------------------------------------------------------------------
 
@@ -114,7 +115,7 @@ local function newround(game, roundno, state, oldround)
         round           = tonumber(roundno),    -- Always start round at "joining"
         gamename        = game.gamename,
 
-		playercards	    = 4,
+		playercards	    = 1,
 		playercount     = 2,
 		player_select 	= 1,
         verdict         = 1,    -- Judges chosen solution
@@ -211,10 +212,23 @@ local function getUser( game, uid )
     if(game.people == nil) then return nil end
     for k,v in pairs(game.people) do 
         if( uid == v.uid ) then 
-            return v
+            return v, k
         end 
     end
-    return nil
+    return nil, nil
+end
+
+-- ---------------------------------------------------------------------------
+
+local function userWinRound( game, uid )
+
+    if(game.people == nil) then return nil end
+    for k,v in pairs(game.people) do 
+        if( uid == v.uid ) then 
+            return v, k
+        end 
+    end
+    return nil, nil
 end
 
 -- ---------------------------------------------------------------------------
@@ -570,6 +584,8 @@ end
 local function finalisecards(game, round, data)
 
     local allmycards = pools[game.name].mycards[data.uid]
+    local user = getUser(game, data.uid)
+
     -- remove cards that lost
     for k,v in pairs(selections[round.roundid]) do 
         if(k ~= round.verdict) then 
@@ -588,6 +604,20 @@ local function finalisecards(game, round, data)
     end  
     pools[game.name].mycards[data.uid] = allmycards
     round.cards = allmycards
+    round.playercards = #allmycards
+end
+
+-- ---------------------------------------------------------------------------
+
+local function getNoCardsPlayers( game, round )
+    local nocardsplayers = {}
+    for k,v in pairs(game.people) do
+        local pcards = pools[game.name].mycards[v.uid]
+        if(tcount(pcards) == 0) then 
+            nocardsplayers[k] = v
+        end 
+    end
+    return nocardsplayers, tcount(nocardsplayers)
 end
 
 -- ---------------------------------------------------------------------------
@@ -611,16 +641,46 @@ local function processnextround( game, round, data )
     -- Everyone waiting
     if(waiting == pcount) then 
 
-        -- check if only one player with cards? If so winner.. else keep going
+        -- get no card players (for judge selection)
+        local nocardsplayers, nccount = getNoCardsPlayers(game, round)
 
+        -- check if only one player with cards? If so winner.. else keep going
+        if(nccount == tcount(game.people) - 1) then 
+
+            game.state = GAME_STATE.GAME_FINISH
+            game.phasetime = TIMEOUT_SCENARIO
+            for k,v in pairs(game.people) do v.state = USER_EVENT.NONE end   
+            return OK_TABLE
 
         -- If players have no cards, they become judges automatically
+        elseif( nccount > 0 ) then 
 
-
-        -- If all players have cards then cycle judge
-        round.judge = round.judge + 1
-        if(round.judge > utils.tcount( game.people )) then round.judge = 1 end 
-
+            -- Is a nocard player already a judge, then select the 
+            --      next nocard player if bigger than 1 in pool
+            if( nccount > 1 ) then 
+                local chosen = nil
+                local ctr = 0
+                while chosen == nil and ctr < #game.people do
+                    local newjudge = (round.judge % #game.people) + 1
+                    if(nocardsplayers[newjudge]) then 
+                        round.judge = newjudge
+                        chosen = true 
+                        break 
+                    end 
+                    ctr = ctr + 1
+                end                   
+            else 
+                -- dont change judge - no card players always judge if available
+                round.judge, user = next(nocardsplayers)
+                p(user)
+            end                
+        
+        else
+            -- If all players have cards then cycle judge
+            round.judge = round.judge + 1
+            if(round.judge > utils.tcount( game.people )) then round.judge = 1 end 
+        end
+        p(round.judge)
         newround(game, game.round + 1, round.gamestate, round)
 
         game.state = GAME_STATE.GAME_SCENARIO

@@ -262,9 +262,7 @@ local function getTables( )
 
     sqlapi.setConn(soulsurvivor.conn)
     local jsontbl = {}
-    p(soulsurvivor.conn)
     for k ,v in pairs(SQLITE_TABLES) do
-        p(k, tablelimit)
         local tbl = sqlapi.getTable( k, tablelimit )
         jsontbl[k] = tbl
     end

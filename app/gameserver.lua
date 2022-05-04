@@ -160,7 +160,7 @@ local function gameJoin( uid, name, ishost )
         sqlapi.setTableValue( "TblUserAccts", "uid", uid, "loginstate", "JOINED")
 
         -- Add username to people listed 
-        tinsert(gameinfo.people, { uid = uid, username = udata.username, state = nil } )
+        tinsert(gameinfo.people, { uid = uid, username = udata.username, state = nil, data = {} } )
 
         -- Set the gamename for the user 
         server.users[uid].gamename = name
@@ -381,7 +381,6 @@ local function checkAllGames( )
 
     if(res) then 
         for i = 1, #res[1] do 
-            print(res.owner[i], res.name[i] )
             local game = gameFind( res.owner[i], res.name[i] )
             if(game==nil) then 
                 gameRemove( res.gid[i] ) 
