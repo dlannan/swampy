@@ -110,14 +110,16 @@ end
 
 ---------------------------------------------------------------------------------
 
-local function getTable( name, limit )
+local function getTable( name, limit, where )
 
     if(name == nil) then 
         p("[Sql GetTable Error] No table name provided.")
         return {}
     end 
 
-    local sqlcmd = [[SELECT * FROM ]]..name..[[; ]]
+    local sqlcmd = [[SELECT * FROM ]]..name
+    if(where) then sqlcmd = sqlcmd..[[ WHERE ]]..where end
+    sqlcmd = sqlcmd..[[ ; ]]
 
     local jsontbl = {}
     local tbl, rowcount = conn:exec(sqlcmd)
@@ -134,7 +136,6 @@ local function getTable( name, limit )
     end 
     return jsontbl
 end
-
 
 ---------------------------------------------------------------------------------
 

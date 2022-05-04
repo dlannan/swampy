@@ -147,7 +147,7 @@ local function newround(game, roundno, state, oldround)
             persons     = nil,
 
             -- Each players pool of cards.
-            mycards     = {},   
+            mycards     = {},
         }    
     end
     
@@ -585,6 +585,8 @@ local function finalisecards(game, round, data)
 
     local allmycards = pools[game.name].mycards[data.uid]
     local user = getUser(game, data.uid)
+    local won = true
+    if(tcount(allmycards) == 0) then won = false end
 
     -- remove cards that lost
     for k,v in pairs(selections[round.roundid]) do 
@@ -598,10 +600,15 @@ local function finalisecards(game, round, data)
             end 
             for i, vv in ipairs(marked) do 
                 tremove(allmycards, vv)
+                won = false
             end 
 
         end 
     end  
+
+    if(game.roundstats[data.uid] == nil) then game.roundstats[data.uid] = {} end 
+    tinsert(game.roundstats[data.uid], won)
+
     pools[game.name].mycards[data.uid] = allmycards
     round.cards = allmycards
     round.playercards = #allmycards
@@ -649,6 +656,15 @@ local function processnextround( game, round, data )
 
             game.state = GAME_STATE.GAME_FINISH
             game.phasetime = TIMEOUT_SCENARIO
+
+            for k,v in pairs(game.people) do 
+                local cards = pools[game.name].mycards[data.uid]
+                if(tcount(card) > 0) then 
+                    game.winner = k 
+                    break
+                end 
+            end            
+
             for k,v in pairs(game.people) do v.state = USER_EVENT.NONE end   
             return OK_TABLE
 
@@ -672,7 +688,6 @@ local function processnextround( game, round, data )
             else 
                 -- dont change judge - no card players always judge if available
                 round.judge, user = next(nocardsplayers)
-                p(user)
             end                
         
         else
@@ -680,7 +695,6 @@ local function processnextround( game, round, data )
             round.judge = round.judge + 1
             if(round.judge > utils.tcount( game.people )) then round.judge = 1 end 
         end
-        p(round.judge)
         newround(game, game.round + 1, round.gamestate, round)
 
         game.state = GAME_STATE.GAME_SCENARIO

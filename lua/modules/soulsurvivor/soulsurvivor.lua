@@ -29,6 +29,9 @@ local SQLITE_TABLES = {
     ["persons"]      = { create = "desc TEXT, theme TEXT", cols = { "desc", "theme" } },
     ["traits"]       = { create = "desc TEXT, theme TEXT", cols = { "desc", "theme" } },
     ["scenarios"]    = { create = "desc TEXT, theme TEXT", cols = { "desc", "theme" } },
+
+    ["progress"]     = { create = "uid TEXT, name TEXT, gamewins NUMBER, roundwins NUMBER, roundcounts NUMBER", 
+                        cols = { "uid", "name", "gamewins, roundwins, roundcounts" } },
 }
 
 ---------------------------------------------------------------------------------
@@ -67,7 +70,6 @@ local function initModule(mod)
         p("Importing sqldb.")
         sqlapi.importJSONFile( "./data/soulsurvivor-import.json" )
         
-        sqlapi.getTableColumns("persons")
         -- restore sql conn
         sqlapi.setConn(mod.sql.prevconn)
     end
@@ -204,7 +206,13 @@ local function createGame( uid, name )
 
         -- index to the first person who is the creator/leader
         leader 		= 1,
+        -- Winner for this game
+        winner      = nil, 
+
         round       = {},
+        -- Record each players success for a round. Round win or loss. 
+        roundstats  = {},
+
         -- Phase timeouts are set using this
         phasetime   = 0, 
 
