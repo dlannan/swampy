@@ -115,7 +115,7 @@ local function newround(game, roundno, state, oldround)
         round           = tonumber(roundno),    -- Always start round at "joining"
         gamename        = game.gamename,
 
-		playercards	    = 1,
+		playercards	    = 4,
 		playercount     = 2,
 		player_select 	= 1,
         verdict         = 1,    -- Judges chosen solution
