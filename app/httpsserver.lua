@@ -21,7 +21,7 @@ local utils     = require("lua.utils")
 
 ---------------------------------------------------------------------------------
 -- TODO: Make an arg, instead. This is very temp.
-local SERVER_IP     = "0.0.0.0"
+local HTTP_SERVER_IP     = "0.0.0.0"
 ---------------------------------------------------------------------------------
 
 require('lua.pretty-print')
@@ -36,23 +36,6 @@ local wui       = require("app.webinterface")
 tcpserve.init(args)
 wui.init(tcpserve)
 
----------------------------------------------------------------------------------
--- API Handlers 
-require("lua.api-handlers.userlogin")
-require("lua.api-handlers.userauthenticate")
-require("lua.api-handlers.userconnect")
-require("lua.api-handlers.userupdate")
-
-require("lua.api-handlers.datagettable")
-require("lua.api-handlers.datasettable")
-
-require("lua.api-handlers.gamecreate")
-require("lua.api-handlers.gamefind")
-require("lua.api-handlers.gamejoin")
-require("lua.api-handlers.gameleave")
-require("lua.api-handlers.gameclose")
-
-require("lua.api-handlers.gameupdate")
 
 -- Special admin only handlers - this needs login, and bearertoken to work!
 local adminUpdate = require("lua.api-handlers.adminupdate")
@@ -176,28 +159,6 @@ local EnpointMatchTbl = {
 --    ['^/(.*)%.html$']       = getHTML,
 }
 
--- All api endpoints must match a complete path
--- TODO: Publish these for users to access!
--- Format: /api/v1/<token>/<feature>/<function>?<params>
--- Output: Always returns json. Minimum is empty json object {}
-local EndpointAPITbl = {
-    ['/user/login']         = api_userLogin or function() end,
-    ['/user/authenticate']  = api_userAuthenticate or function() end,
-    ['/user/connect']       = api_userConnect or function() end,
-    ['/user/close']         = api_userClose or function() end,
-    ['/user/update']        = api_userUpdate or function() end,
-
-    ['/data/gettable']      = api_dataGetTable or function() end, 
-    ['/data/settable']      = api_dataSetTable or function() end,
-
-    ['/game/find']          = api_gameFind or function() end,
-    ['/game/create']        = api_gameCreate or function() end,
-    ['/game/join']          = api_gameJoin or function() end,
-    ['/game/leave']         = api_gameLeave or function() end,
-    ['/game/close']         = api_gameClose or function() end,
-
-    ['/game/update']        = api_gameUpdate or function() end,
-}
 
 ---------------------------------------------------------------------------------
 
@@ -232,35 +193,7 @@ local function handleEndpointMatch( client, req, res, body )
     return handled
 end
 
----------------------------------------------------------------------------------
 
-local function handleAPIEndpoints( client, req, res, body )
-
-    local urltbl = url.parse(req.url)
-    -- Split path to check token
-    local path = urltbl.path
-    local pathitems = utils.split(path, "/")
-
-    if( tcpserve.checkAPIToken( pathitems[4] ) ~= true ) then return end
-    local funcpath = ""
-    for i=5, #pathitems do funcpath = funcpath.."/"..pathitems[i] end
-
-    local handled = nil
-    local handleFunc = EndpointAPITbl[funcpath]
-    local output    = ""
-    local mode      = "html"
-    if(handleFunc) then 
-        if(req.method == "OPTIONS") then -- preflight call - return ok
-            output  = ""
-            mode    = "preflight"
-        else 
-            output = handleFunc( client, req, res, body )
-            mode    = "json"
-            handled = true 
-        end 
-    end 
-    return handled, output, mode
-end
 
 ---------------------------------------------------------------------------------
 
@@ -273,19 +206,6 @@ local function processRequest(req, res, body)
 
     local tcp = req.socket._handle
     local client = uv.tcp_getpeername( tcp )
-
-    -- Api calls always first. These fan out - when a game starts then it handles its sockets
-    if( string.match(req.url, "^/api/v1/") ) then 
-        local handled, output, mode = handleAPIEndpoints(client, req, res, body)
-        if(mode == "json") then 
-            utils.sendjson(res, output) 
-        elseif(mode == "preflight") then 
-            utils.sendpreflight( req, res )
-        elseif(mode == "html" and output) then 
-            utils.sendhtml( res, output )
-        end
-        return -- Always exit with api calls
-    end
 
     -- Resource endpoints like images and similar
     if( handleEndpointMatch(client, req, res, body) ) then return end
@@ -325,7 +245,7 @@ local function run(port)
 
     ---------------------------------------------------------------------------------
     https.createServer({ key = key, cert = cert }, onRequest):listen(port)
-    p("Server listening at https://"..SERVER_IP..":"..port.."/")
+    p("Server listening at https://"..HTTP_SERVER_IP..":"..port.."/")
 
     -- Need to catch sig and close (for proper shutdown)
     --tcpserve.close()
