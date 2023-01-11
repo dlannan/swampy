@@ -52,7 +52,7 @@ end
 local function getFont(client, req, res) 
 
     -- TODO: Need to check with mime type really
-    local font = fs.readFileSync("."..req.url)
+    local font = fs.readFileSync("./admin/"..req.url)
     if font then 
         local ext = string.match(req.url, "%.(.*)$") or "ttf"
         local ctype = "font/"..ext
@@ -65,7 +65,7 @@ end
 local function getCSS(client, req, res) 
 
     -- TODO: Need to check with mime type really
-    local css = fs.readFileSync("."..req.url)
+    local css = fs.readFileSync("./admin/"..req.url)
     if css then utils.senddata( res, css, "text/css") end
 end
 
@@ -74,7 +74,7 @@ end
 local function getJS(client, req, res) 
 
     -- TODO: Need to check with mime type really
-    local js = fs.readFileSync("."..req.url)
+    local js = fs.readFileSync("./admin/"..req.url)
     if js then utils.senddata( res, js, "text/javascript") end
 end
 
@@ -113,7 +113,7 @@ end
 
 local function getImage(client, req, res)
     -- TODO: Need to check with mime type really
-    local img = fs.readFileSync("."..req.url)
+    local img = fs.readFileSync("./admin/"..req.url)
     local ext = string.sub(req.url, -3, -1)
     --p("[Extension] ", ext)
     if img and ext:lower() == "png" then utils.senddata( res, img, "image/png") end
