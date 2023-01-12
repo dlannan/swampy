@@ -41,6 +41,8 @@ local timer     = require "deps.timer"
 ---------------------------------------------------------------------------------
 -- TODO: Make an arg, instead. This is very temp.
 local SERVER_IP     = "0.0.0.0"
+
+local API_VERSION   = "/api/v1"
 ---------------------------------------------------------------------------------
 
 require('lua.pretty-print')
@@ -78,52 +80,55 @@ require("lua.api-handlers.gameupdate")
 -- Format: /api/v1/<token>/<feature>/<function>?<params>
 -- Output: Always returns json. Minimum is empty json object {}
 local EndpointAPITbl = {
-    ['/user/login']         = api_userLogin or function() end,
-    ['/user/authenticate']  = api_userAuthenticate or function() end,
-    ['/user/connect']       = api_userConnect or function() end,
-    ['/user/close']         = api_userClose or function() end,
-    ['/user/update']        = api_userUpdate or function() end,
+    [API_VERSION..'/user/login']         = api_userLogin or function() end,
+    [API_VERSION..'/user/authenticate']  = api_userAuthenticate or function() end,
+    [API_VERSION..'/user/connect']       = api_userConnect or function() end,
+    [API_VERSION..'/user/close']         = api_userClose or function() end,
+    [API_VERSION..'/user/update']        = api_userUpdate or function() end,
 
-    ['/data/gettable']      = api_dataGetTable or function() end, 
-    ['/data/settable']      = api_dataSetTable or function() end,
+    [API_VERSION..'/data/gettable']      = api_dataGetTable or function() end, 
+    [API_VERSION..'/data/settable']      = api_dataSetTable or function() end,
 
-    ['/game/find']          = api_gameFind or function() end,
-    ['/game/create']        = api_gameCreate or function() end,
-    ['/game/join']          = api_gameJoin or function() end,
-    ['/game/leave']         = api_gameLeave or function() end,
-    ['/game/close']         = api_gameClose or function() end,
+    [API_VERSION..'/game/find']          = api_gameFind or function() end,
+    [API_VERSION..'/game/create']        = api_gameCreate or function() end,
+    [API_VERSION..'/game/join']          = api_gameJoin or function() end,
+    [API_VERSION..'/game/leave']         = api_gameLeave or function() end,
+    [API_VERSION..'/game/close']         = api_gameClose or function() end,
 
-    ['/game/update']        = api_gameUpdate or function() end,
+    [API_VERSION..'/game/update']        = api_gameUpdate or function() end,
 }
 
 ---------------------------------------------------------------------------------
 
 local function handleAPIEndpoints( client, req, res, body )
 
-    local urltbl = url.parse(req.url)
-    -- Split path to check token
-    local path = urltbl.path
-    local pathitems = utils.split(path, "/")
+    -- p(req)
 
-    if( tcpserve.checkAPIToken( pathitems[4] ) ~= true ) then return end
-    local funcpath = ""
-    for i=5, #pathitems do funcpath = funcpath.."/"..pathitems[i] end
+    -- Check headers first. If token is incorrect. Bail early
+    if( req.headers["APIToken"] ) then 
 
-    local handled = nil
-    local handleFunc = EndpointAPITbl[funcpath]
-    local output    = ""
-    local mode      = "html"
-    if(handleFunc) then 
-        if(req.method == "OPTIONS") then -- preflight call - return ok
-            output  = ""
-            mode    = "preflight"
-        else 
-            output = handleFunc( client, req, res, body )
-            mode    = "json"
-            handled = true 
+        local urltbl = url.parse(req.url)
+        if( tcpserve.checkAPIToken( req.headers["APIToken"] ) ~= true ) then return end
+
+        local handled = nil
+        local handleFunc = EndpointAPITbl[urltbl.path]
+        local output    = ""
+        local mode      = "html"
+        if(handleFunc) then 
+            if(req.method == "OPTIONS") then -- preflight call - return ok
+                output  = ""
+                mode    = "preflight"
+            else 
+                output = handleFunc( client, req, res, body )
+                mode    = "json"
+                handled = true 
+            end 
         end 
-    end 
-    return handled, output, mode
+        return handled, output, mode
+
+    else 
+        return nil, nil, nil 
+    end
 end
 
 ---------------------------------------------------------------------------------

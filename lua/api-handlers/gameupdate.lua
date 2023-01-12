@@ -18,20 +18,20 @@ local games     = require("app.gameserver")
 
 api_gameUpdate = function( client, req, res, body )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     -- Default error
     local outjson = json.encode( { result = nil, status = "Error: Cant update game." } )
 
-    if(params.query.name and params.query.uid) then 
+    if(header["Name"] and header["DeviceId"]) then 
 
         -- Set the uid timeout. This is how we know they are still connected
-        games.gameUserUpdate(params.query.uid, params.query.name)
+        games.gameUserUpdate(header["DeviceId"], header["Name"])
 
         -- Get the current game state. This is within a running lua vm.
-        local tblstr = tcpserve.gameUpdate(params.query.uid, params.query.name, body)
+        local tblstr = tcpserve.gameUpdate(header["DeviceId"], header["Name"], body)
 
         if(tblstr) then 
-            -- print("[gameUpdate] Name: ", params.query.name, "  UID: ", params.query.uid)
+            -- print("[gameUpdate] Name: ", header["Name"], "  UID: ", header["DeviceId"])
             outjson = json.encode( { result = tblstr, status = "OK" } )
         end
     end

@@ -11,16 +11,16 @@ local utils     = require("lua.utils")
 
 api_gameJoin = function( client, req, res )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     -- Default error
     local outjson = json.encode( { result = nil, status = "Error: Cant join game." } )
 
-    if(params.query.name and params.query.uid) then 
+    if(header["Name"] and header["DeviceId"]) then 
 
         -- This is effectively the bearertoken for the session. Will be sent with all further requests
-        local jsonstr = tcpserve.gameJoin(params.query.uid, params.query.name)
+        local jsonstr = tcpserve.gameJoin(header["DeviceId"], header["Name"])
 
-        print("[gameJoin] Name: ", params.query.name, "  UID: ", params.query.uid)
+        print("[gameJoin] Name: ", header["Name"], "  UID: ", header["DeviceId"])
         outjson = json.encode( { result = jsonstr, status = "OK" } )
     end
 

@@ -14,20 +14,20 @@ local utils     = require("lua.utils")
 
 api_userAuthenticate = function( client, req, res )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     
     -- Default error
     local outjson = json.encode( { bearertoken = nil, status = "Error: No connect" } )
 
     -- Get logintoken and device must be resent - if device changes, then no connect
-    if(params.query.logintoken and params.query.uid) then 
+    if(header["LoginToken"] and header["DeviceId"]) then 
 
         -- Looks up in db and returns the bearertoken generated during login
-        local bearertoken = tcpserve.authenticateUser(params.query.logintoken, params.query.uid)
+        local bearertoken = tcpserve.authenticateUser(header["LoginToken"], header["DeviceId"])
 
         if(bearertoken ~= nil) then 
 
-            print("[userAuthenticate] UserToken: ", params.query.logintoken, "  Device: ", params.query.uid)
+            print("[userAuthenticate] UserToken: ", header["LoginToken"], "  Device: ",  header["DeviceId"])
             outjson = json.encode( { bearertoken = bearertoken, status = "OK" } )
         else
             outjson = json.encode( { bearertoken = nil, status = "Error: Invalid token" } )

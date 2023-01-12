@@ -14,19 +14,19 @@ local utils     = require("lua.utils")
 
 api_adminUpdate = function( client, req, res, body )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     
     -- Default error
     local outjson = json.encode( { status = "Error: Invalid admin update" } )
 
     -- Update user player name or/and language
-    if(params.query.username) then 
+    if(header["UserName"]) then 
 
         -- Looks up in db and returns the bearertoken generated during login
-        local ok = tcpserve.setAdminUsername(client, params.query.username)
+        local ok = tcpserve.setAdminUsername(client, header["UserName"])
         if(ok) then 
 
-            print("[adminUpdate] UserName: ", params.query.username)
+            print("[adminUpdate] UserName: ", header["UserName"])
             outjson = json.encode( { status = "OK" } )
         end
     end

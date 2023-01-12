@@ -11,16 +11,16 @@ local utils     = require("lua.utils")
 
 api_dataGetTable = function( client, req, res )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     -- Default error
     local outjson = json.encode( { data = nil, status = "Error: Cant get table." } )
 
-    if(params.query.name and params.query.limit) then 
+    if(header["Name"] and header["Limit"]) then 
 
         -- This is effectively the bearertoken for the session. Will be sent with all further requests
-        local jsonstr = tcpserve.getTable(params.query.name, params.query.limit)
+        local jsonstr = tcpserve.getTable(header["Name"], pheader["Limit"])
 
-        print("[dataGetTable] Name: ", params.query.name, "  Limit: ", params.query.limit)
+        print("[dataGetTable] Name: ", header["Name"], "  Limit: ", header["Limit"])
         outjson = json.encode( { data = jsonstr, status = "OK" } )
     end
 

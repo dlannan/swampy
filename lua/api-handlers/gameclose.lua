@@ -11,16 +11,16 @@ local utils     = require("lua.utils")
 
 api_gameClose = function( client, req, res )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     -- Default error
     local outjson = json.encode( { result = nil, status = "Error: Cant leave game." } )
 
-    if(params.query.name and params.query.uid) then 
+    if(header["Name"] and header["DeviceId"]) then 
 
         -- This is effectively the bearertoken for the session. Will be sent with all further requests
-        local jsonstr = tcpserve.gameClose(params.query.uid, params.query.name)
+        local jsonstr = tcpserve.gameClose(header["DeviceId"], header["Name"])
 
-        print("[gameClose] Name: ", params.query.name, "  UID: ", params.query.uid)
+        print("[gameClose] Name: ", header["Name"], "  UID: ", header["DeviceId"])
         outjson = json.encode( { result = jsonstr, status = "OK" } )
     end
 

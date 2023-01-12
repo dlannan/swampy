@@ -14,19 +14,19 @@ local utils     = require("lua.utils")
 
 api_userUpdate = function( client, req, res )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     
     -- Default error
     local outjson = json.encode( { status = "Error: Invalid user update" } )
 
     -- Update user player name or/and language
-    if(params.query.uid and (params.query.playername or params.query.lang)) then 
+    if(header["DeviceId"] and (header["PlayerName"] or header["Language"])) then 
 
         -- Looks up in db and returns the bearertoken generated during login
-        local ok = tcpserve.userUpdateName(params.query.uid, params.query.playername, params.query.lang)
+        local ok = tcpserve.userUpdateName(header["DeviceId"], header["PlayerName"], header["Language"])
         if(ok) then 
 
-            print("[userUpdate] PlayerName: ", params.query.playername, " Lang: ", params.query.lang)
+            print("[userUpdate] PlayerName: ", header["PlayerName"], " Lang: ", header["Language"])
             outjson = json.encode( { status = "OK" } )
         end
     end

@@ -22,15 +22,15 @@ local utils     = require("lua.utils")
 
 api_userLogin = function( client, req, res )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
     local outjson = json.encode( { data = nil, status = "Error: Invalid login." } )
 
-    if(params.query.userid and params.query.uid) then 
+    if(header["UserId"] and header["DeviceId"]) then 
 
         -- This is effectively the bearertoken for the session. Will be sent with all further requests
-        local unique_user_id = tcpserve.loginUser(params.query.userid, params.query.uid)
+        local unique_user_id = tcpserve.loginUser(header["UserId"], header["DeviceId"])
 
-        print("[userLogin] User: ", params.query.userid, "  Device: ", params.query.uid)
+        print("[userLogin] User: ", header["UserId"], "  Device: ", header["DeviceId"])
         outjson = json.encode( { uuid = unique_user_id, status = "OK" } )
     end
     return outjson

@@ -14,8 +14,7 @@ local utils     = require("lua.utils")
 
 api_userConnect = function( client, req, res )
 
-    local params = url.parse(req.url)
-
+    local header =  req.headers
     -- Default error
     local outjson = json.encode( { data = nil, status = "Error: No connect" } )
 
@@ -23,14 +22,14 @@ api_userConnect = function( client, req, res )
     local isok = tcpserve.checkToken(btoken)
 
     -- Get module, name and device must be present - if device changes, then no connect, need login
-    if(params.query.module and params.query.name and params.query.uid and isok) then 
+    if(header["Module"] and header["Name"] and header["DeviceId"] and isok) then
 
         -- Looks up in db and returns the bearertoken generated during login
-        local userinfo = tcpserve.connectUser(client, params.query.module, params.query.name, params.query.uid)
+        local userinfo = tcpserve.connectUser(client, header["Module"], header["Name"], header["DeviceId"])
 
         if(userinfo) then 
 
-            print("[userConnect] Name: ", params.query.name, "  Device: ", params.query.uid)
+            print("[userConnect] Name: ", header["Name"], "  Device: ",header["DeviceId"])
             outjson = json.encode( { data = userinfo, status = "OK" } )
         else
             outjson = json.encode( { data = nil, status = "Error: User cant connect" } )

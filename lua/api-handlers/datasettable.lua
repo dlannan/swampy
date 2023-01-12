@@ -11,17 +11,17 @@ local utils     = require("lua.utils")
 
 api_dataSetTable = function( client, req, res, body )
 
-    local params = url.parse(req.url)
+    local header =  req.headers
 
     -- Default error
     local outjson = json.encode( { results = nil, status = "Error: Cant set table." } )
 
-    if(params.query.name) then 
+    if(header["Name"]) then 
 
         -- This is effectively the bearertoken for the session. Will be sent with all further requests
-        local jsonstr = tcpserve.setTable(params.query.name, body)
+        local jsonstr = tcpserve.setTable(header["Name"], body)
 
-        print("[dataSetTable] Name: ", params.query.name)
+        print("[dataSetTable] Name: ", header["Name"])
         outjson = json.encode( { results = {}, status = "OK" } )
     end
 
