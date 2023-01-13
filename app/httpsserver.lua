@@ -20,10 +20,8 @@ local url       = require("lua.url")
 local utils     = require("lua.utils")
 
 ---------------------------------------------------------------------------------
--- TODO: Make an arg, instead. This is very temp.
-local HTTP_SERVER_IP     = "0.0.0.0"
----------------------------------------------------------------------------------
 
+local cfg       = require("app.server-config")
 require('lua.pretty-print')
 local dbg       = require('lua.debugger')
 
@@ -193,8 +191,6 @@ local function handleEndpointMatch( client, req, res, body )
     return handled
 end
 
-
-
 ---------------------------------------------------------------------------------
 
 local function processRequest(req, res, body)
@@ -236,7 +232,7 @@ function onRequest(req, res)
 end
 
 
-local function run(port)
+local function run(port, pipeFDs)
 
     ---------------------------------------------------------------------------------
     -- Need to auto update keys from lets encrypt
@@ -245,13 +241,13 @@ local function run(port)
 
     ---------------------------------------------------------------------------------
     https.createServer({ key = key, cert = cert }, onRequest):listen(port)
-    p("Server listening at https://"..HTTP_SERVER_IP..":"..port.."/")
+    p("Server listening at https://"..cfg.SERVER_IP..":"..port.."/")
 
     -- Need to catch sig and close (for proper shutdown)
     --tcpserve.close()
     ---------------------------------------------------------------------------------
 
-    tcpserve.runModules()
+    tcpserve.runModules( pipeFDs )
 
     print("Started...")
 end

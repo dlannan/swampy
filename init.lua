@@ -14,32 +14,42 @@ local ffi = require("ffi")
 ffi.cdef[[
     int getpid();
     int fork();
-    int system( const char *cmd );
+    int pipe(int *pipes);
 ]]
+
+---------------------------------------------------------------------------------
+
+local cfg           = require("app.server-config")
 
 ---------------------------------------------------------------------------------
 local PID           = ffi.C.getpid()
 local CHILD_PID     = -1
-local port = 5000
+
 ---------------------------------------------------------------------------------
+
+local pipeFDs = ffi.new("int[2]")
+
+if (ffi.C.pipe( pipeFDs) < 0) then 
+    print("[Error] Unable to allocate pipes.")
+    return 
+end 
 
 -- Dupe the process from here
 ffi.C.fork()
 
 -- Check pid 
-newPID = ffi.C.getpid()
+local newPID = ffi.C.getpid()
 
 -- If the router process then...
 if(newPID == PID) then
     local router = require("app.router")
-    router.run(port)
+    router.run(cfg.PORT, pipeFDs)
 -- if the Child Webserver process
 else 
     CHILD_PID = newPID
     -- Create an internal random port for admin httpserver
-    local http_port = port + 50
     local httpsserver   = require("app.httpsserver")
-    httpsserver.run(http_port)
+    httpsserver.run(cfg.PORT_WEB, pipeFDs)
 end
 
 ---------------------------------------------------------------------------------

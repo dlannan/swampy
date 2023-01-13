@@ -25,7 +25,6 @@ package.path = package.path..";./deps/tls/?.lua"
 
 local ffi = require("ffi")
 
-
 ---------------------------------------------------------------------------------
 local http      = require("http")
 local https     = require("https")
@@ -38,40 +37,17 @@ local url       = require("lua.url")
 local utils     = require("lua.utils")
 local timer     = require "deps.timer"
 
----------------------------------------------------------------------------------
--- TODO: Make an arg, instead. This is very temp.
-local SERVER_IP     = "0.0.0.0"
+local cfg       = require("app.server-config")
 
-local API_VERSION   = "/api/v1"
 ---------------------------------------------------------------------------------
 
 require('lua.pretty-print')
 local dbg           = require('lua.debugger')
-
 local tcpserve      = require("app.dataserver")
 
 ---------------------------------------------------------------------------------
 -- Init before assignments
 tcpserve.init(args)
-
-
----------------------------------------------------------------------------------
--- API Handlers 
-require("lua.api-handlers.userlogin")
-require("lua.api-handlers.userauthenticate")
-require("lua.api-handlers.userconnect")
-require("lua.api-handlers.userupdate")
-
-require("lua.api-handlers.datagettable")
-require("lua.api-handlers.datasettable")
-
-require("lua.api-handlers.gamecreate")
-require("lua.api-handlers.gamefind")
-require("lua.api-handlers.gamejoin")
-require("lua.api-handlers.gameleave")
-require("lua.api-handlers.gameclose")
-
-require("lua.api-handlers.gameupdate")
 
 ---------------------------------------------------------------------------------
 
@@ -80,22 +56,9 @@ require("lua.api-handlers.gameupdate")
 -- Format: /api/v1/<token>/<feature>/<function>?<params>
 -- Output: Always returns json. Minimum is empty json object {}
 local EndpointAPITbl = {
-    [API_VERSION..'/user/login']         = api_userLogin or function() end,
-    [API_VERSION..'/user/authenticate']  = api_userAuthenticate or function() end,
-    [API_VERSION..'/user/connect']       = api_userConnect or function() end,
-    [API_VERSION..'/user/close']         = api_userClose or function() end,
-    [API_VERSION..'/user/update']        = api_userUpdate or function() end,
-
-    [API_VERSION..'/data/gettable']      = api_dataGetTable or function() end, 
-    [API_VERSION..'/data/settable']      = api_dataSetTable or function() end,
-
-    [API_VERSION..'/game/find']          = api_gameFind or function() end,
-    [API_VERSION..'/game/create']        = api_gameCreate or function() end,
-    [API_VERSION..'/game/join']          = api_gameJoin or function() end,
-    [API_VERSION..'/game/leave']         = api_gameLeave or function() end,
-    [API_VERSION..'/game/close']         = api_gameClose or function() end,
-
-    [API_VERSION..'/game/update']        = api_gameUpdate or function() end,
+    [cfg.API_VERSION..'/user/']         = require("app.server-users"),
+    [cfg.API_VERSION..'/data/']         = require("app.server-data"), 
+    [cfg.API_VERSION..'/game/']         = require("app.server-game"),
 }
 
 ---------------------------------------------------------------------------------
@@ -103,23 +66,25 @@ local EndpointAPITbl = {
 local function handleAPIEndpoints( client, req, res, body )
 
     -- p(req)
+    local token = req.headers["APIToken"]
 
     -- Check headers first. If token is incorrect. Bail early
-    if( req.headers["APIToken"] ) then 
+    if( token ) then 
 
         local urltbl = url.parse(req.url)
-        if( tcpserve.checkAPIToken( req.headers["APIToken"] ) ~= true ) then return end
+        if( tcpserve.checkAPIToken( token ) ~= true ) then return end
+        local endpointType = string.sub(urltbl.path, 1, #(cfg.API_VERSION) + 6)
 
         local handled = nil
-        local handleFunc = EndpointAPITbl[urltbl.path]
+        local handleObject = EndpointAPITbl[endpointType]
         local output    = ""
         local mode      = "html"
-        if(handleFunc) then 
+        if(handleObject) then 
             if(req.method == "OPTIONS") then -- preflight call - return ok
                 output  = ""
                 mode    = "preflight"
             else 
-                output = handleFunc( client, req, res, body )
+                output = handleObject.handleEndpoint( urltbl.path, client, req, res, body )
                 mode    = "json"
                 handled = true 
             end 
@@ -173,14 +138,19 @@ function onRequest(req, res)
 end
 
 ---------------------------------------------------------------------------------
+local buf = ffi.new("char[?]", 32)
+local function checkWebServer( pipeFDs )
 
-local wshandle = nil 
-
-local function checkWebServer( )
-
+    -- Do a check on the webserver. If its not closed tell it to close.
+    ffi.fill(buf, 32)
+    local ok = cfg.pipeRead(pipeFDs[cfg.PIPE_ReadEnd], buf, 16)
+    local line = ffi.string(buf, ok)
+    p("[Pipe Read] "..ok.."  "..line)
 end
 
-local function run(port)
+---------------------------------------------------------------------------------
+
+local function run(port, pipeFDs)
 
     ---------------------------------------------------------------------------------
     -- Need to auto update keys from lets encrypt
@@ -189,10 +159,10 @@ local function run(port)
 
     ---------------------------------------------------------------------------------
     https.createServer({ key = key, cert = cert }, onRequest):listen(port)
-    p("Router listening at https://"..SERVER_IP..":"..port.."/")
+    p("Router listening at https://"..cfg.SERVER_IP..":"..port.."/")
 
     -- Watch this webserver. If it dies, then restart it.
-    timer.setInterval( 1000, checkWebServer )
+    timer.setInterval( 1000, checkWebServer, pipeFDs )
     
     -- Need to catch sig and close (for proper shutdown)
     --tcpserve.close()

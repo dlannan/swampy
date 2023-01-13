@@ -3,45 +3,20 @@ local ffi   = require "ffi"
 
 local tinsert   = table.insert
 
-local uv    = require('uv')
-local json  = require('lua.json')
-local aes   = require "lua.aes"
-local utils = require "lua.utils"
+local uv        = require('uv')
+local json      = require('lua.json')
+local aes       = require "lua.aes"
+local utils     = require "lua.utils"
 
-local sql   = require "deps.sqlite3"
-local timer = require "deps.timer"
+local sql       = require "deps.sqlite3"
+local timer     = require "deps.timer"
 
-local sqlapi= require "lua.sqlapi"
-local games = require "app.gameserver"
+local sqlapi    = require "lua.sqlapi"
+local games     = require "app.gameserver"
 
-local binser = require "lua.binser"
+local binser    = require "lua.binser"
 
----------------------------------------------------------------------------------
--- Admin
-local LOGIN_TIMEOUT         = 3600 * 8  -- 8 hours default login amount
-
--- TODO: Update rate shall be able to be modified per module 
--- Game System
-local GAME_CHECK_TIMEOUT    = 5         -- Every five seconds check the games
-
-local UPDATE_RATE           = 100
-local UPDATE_TICKS          = UPDATE_RATE * 0.001
-
--- User Profiles (short lived user accounts)
-local DEFAULT_TIMEOUT       = 120       -- 120 seconds idle timeout for users 
-local DEFAULT_LANG          = "en-US"
-
-local CONNECT_TIMEOUT       = 3600      -- 1 hour to remove profile for user
-
-local ADMIN_DATA            = "data/admins/store.dli"
-local API_GAME_TOKEN        = "j3mHKlgGZ4"
-
--- Used for generating a bearer token (or similar to)
---   CHANGE THIS IF YOU ARE GOING PUBLIC - its a test key
---   To generate one - choose an aes256cbc generator or similar
---   The GBG data is a Garbage block to pad all keys to over 16 bytes
-local KEY = 0xF6BACB47A4949E554974D51DBD9D6C6A5BA38F0AAEF2F17B73F4843287F44E1C
-local GBG = "bfwduuhnKJLHFneuh443vldspdfleghtGlsbdlw"
+local cfg       = require("app.server-config")
 
 -- Current user profile connection state
 local CONNECT_STATE = {
@@ -82,7 +57,7 @@ local server    = {
     loginTokens     = {},    -- short lived tokens used to handshake with user
 
 
-    UPDATE_TICKS    = UPDATE_TICKS,
+    UPDATE_TICKS    = cfg.UPDATE_TICKS,
 }
 
 local run_exec  = nil       -- Helper for making running things easier with sql
@@ -118,7 +93,7 @@ local SQLITE_TABLES   = {
 local function readAdmins()
 
     local admins = nil
-    local fh = io.open(ADMIN_DATA, "r")
+    local fh = io.open(cfg.ADMIN_DATA, "r")
     if( fh ) then 
         local instr = fh:read("*a") 
         admins = binser.deserialize(instr)[1]
@@ -133,7 +108,7 @@ end
 local function writeAdmins()
 
     local outstr = binser.serialize(server.admins)
-    local fh = io.open(ADMIN_DATA, "w")
+    local fh = io.open(cfg.ADMIN_DATA, "w")
     if( fh ) then fh:write(outstr); fh:close()  end 
 
 end 
@@ -257,7 +232,7 @@ end
 local function getpwtoken( useremail, password )
 
     -- Gen an initial id from useremail and password - aes crypt is nice.
-    local pwtoken = aes.ECB_256(aes.encrypt, KEY, useremail..password..GBG)
+    local pwtoken = aes.ECB_256(aes.encrypt, cfg.KEY, useremail..password..cfg.GBG)
     return pwtoken --string.gsub(pwtoken, "%W", "")
 end
 
@@ -265,7 +240,7 @@ end
 
 local function getAdminToken( useremail, pwtoken )
 
-    local token =  aes.ECB_256(aes.encrypt, KEY, useremail..GBG..pwtoken)
+    local token =  aes.ECB_256(aes.encrypt, cfg.KEY, useremail..cfg.GBG..pwtoken)
     return string.gsub(token, "%W", "")
 end 
 
@@ -274,7 +249,7 @@ end
 local function checkAPIToken( token )
     -- TODO - this needs to check server.apitokens list
     --        They can only be added in the admin console. No code methods here
-    if(token == API_GAME_TOKEN) then return true end 
+    if(token == cfg.API_GAME_TOKEN) then return true end 
     return nil
 end 
 
@@ -320,12 +295,12 @@ local function logoutAdminToken( client, useremail, password )
         local pwtoken = getpwtoken(useremail, password)
         admintoken = getAdminToken(useremail, pwtoken)
     else 
-        admintoken = server.ipadmins[client.ip..GBG]
+        admintoken = server.ipadmins[client.ip..cfg.GBG]
     end 
     if(admintoken == nil) then return nil end 
     adminuser = server.admins[admintoken]
     if(adminuser == nil) then return nil end 
-    server.ipadmins[client.ip..GBG] = nil
+    server.ipadmins[client.ip..cfg.GBG] = nil
     
     adminuser.state = "LOGGED_OUT"
 end
@@ -352,7 +327,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
 
         -- Check ip+port lookup. This is our "connected" user.
         if(client == nil) then return nil end 
-        admintoken = server.ipadmins[client.ip..GBG]
+        admintoken = server.ipadmins[client.ip..cfg.GBG]
     end 
 
     if(admintoken == nil) then return nil end
@@ -371,7 +346,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
             return nil 
         end
 
-        if(thistime - adminuser.timeout > LOGIN_TIMEOUT) then 
+        if(thistime - adminuser.timeout > cfg.LOGIN_TIMEOUT) then 
             if(adminuser.state == "LOGGED_IN") then 
                 adminuser.state = "TIMEOUT"
                 -- This will force a login.
@@ -382,7 +357,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
                     adminuser.state = "LOGGED_IN"
                     adminuser.timeout = thistime
 
-                    server.ipadmins[client.ip..GBG] = admintoken
+                    server.ipadmins[client.ip..cfg.GBG] = admintoken
                     return true
                 end 
                 -- This will force a login.
@@ -390,7 +365,7 @@ local function checkAdminToken( client, useremail, password, pwtoken )
             end 
         end
 
-        server.ipadmins[client.ip..GBG] = admintoken
+        server.ipadmins[client.ip..cfg.GBG] = admintoken
         return true
     end 
 
@@ -434,7 +409,7 @@ local function checkAdminLogin( client, useremail, password )
         if(adminuser.pwtoken ~= pwtoken) then print("BAD PWTOKEN"); return nil end 
         if(server.admins[admintoken].banned ~= false) then print("BANNED"); return nil end
         adminuser.state = "LOGGED_IN"
-        server.ipadmins[client.ip..GBG] = admintoken
+        server.ipadmins[client.ip..cfg.GBG] = admintoken
         -- print("[checkAdminLogin] ",client.ip, client.port, admintoken)   -- TODO: Log this
         return true 
     else 
@@ -444,7 +419,7 @@ local function checkAdminLogin( client, useremail, password )
 
             local newadmin = newAdmin( client, useremail, pwtoken )
             server.admins[admintoken] = newadmin
-            server.ipadmins[client.ip..GBG] = admintoken
+            server.ipadmins[client.ip..cfg.GBG] = admintoken
             writeAdmins()
             return true
         end    
@@ -457,7 +432,7 @@ end
 local function isAdminLoggedin( client )
 
     -- Check ip+port lookup. This is our "connected" user.
-    local admintoken =  server.ipadmins[client.ip..GBG]
+    local admintoken =  server.ipadmins[client.ip..cfg.GBG]
     if(admintoken == nil) then return nil end
     adminuser = server.admins[admintoken]
     if(adminuser and adminuser.state == "LOGGED_IN") then return adminuser.name end 
@@ -469,7 +444,7 @@ end
 local function setAdminUsername( client, newusername )
 
     -- Check ip+port lookup. This is our "connected" user.
-    local admintoken =  server.ipadmins[client.ip..GBG]
+    local admintoken =  server.ipadmins[client.ip..cfg.GBG]
     if(admintoken == nil) then return nil end
     adminuser = server.admins[admintoken]
     if(adminuser and adminuser.state == "LOGGED_IN") then 
@@ -546,8 +521,8 @@ local function newUserInfo( client, module, name, uid )
         username    = name, 
         gamename    = nil,
         loginstate  = CONNECT_STATE.UNKNOWN,
-        lang        = DEFAULT_LANG,
-        timeout     = DEFAULT_TIMEOUT,
+        lang        = cfg.DEFAULT_LANG,
+        timeout     = cfg.DEFAULT_TIMEOUT,
         ip          = client.ip,
     }
     return userinfo
@@ -580,7 +555,7 @@ local function connectUser( client, module, name, uid )
     if ( checkDevice(uid) == nil ) then return nil end
 
     local logintime = os.time()
-    local userdata = [["]]..uid..[[","]]..module..[[","]]..name..[[", "JOINING", "]]..DEFAULT_LANG..[[",]]..DEFAULT_TIMEOUT..[[,]]..logintime
+    local userdata = [["]]..uid..[[","]]..module..[[","]]..name..[[", "JOINING", "]]..cfg.DEFAULT_LANG..[[",]]..cfg.DEFAULT_TIMEOUT..[[,]]..logintime
 
     -- "uid TEXT PRIMARY KEY, userid TEXT, username TEXT, loginstate TEXT, lang TEXT, idletimeout INTEGER, logintime INTEGER"
     local sqlcmd = [[INSERT OR REPLACE INTO TblUserAccts VALUES (]]..userdata..[[) ]]
@@ -638,13 +613,13 @@ end
 --   Each game module will have its own lua env and thread to update.
 --   Req's will be passed in/out the thread.
 
-local function updateModules()
+local function updateModules(pipeFDs)
 
     server.frame = server.frame + 1
     for k, module in pairs(server.modules) do 
         if(module) then 
-            module.info.uptime = module.info.uptime + UPDATE_TICKS   -- secs
-            module.run(module, server.frame, UPDATE_RATE) 
+            module.info.uptime = module.info.uptime + cfg.UPDATE_TICKS   -- secs
+            module.run(module, server.frame, cfg.UPDATE_RATE) 
         end 
     end 
 
@@ -659,7 +634,7 @@ local function updateModules()
             end 
         end
         -- kick users after no connect in an hour
-        if(user and (os.time() - user.logintime > CONNECT_TIMEOUT) ) then 
+        if(user and (os.time() - user.logintime > cfg.CONNECT_TIMEOUT) ) then 
             removeUser(user.uid)
         end
     end
@@ -672,7 +647,7 @@ local function updateModules()
         fh:close()
         server.info.diskusage = tonumber(string.match(output, "^(%d+)"))
 
-        server.game_check = GAME_CHECK_TIMEOUT
+        server.game_check = cfg.GAME_CHECK_TIMEOUT
 
         for k, module in pairs(server.modules) do 
             if(module) then
@@ -680,12 +655,16 @@ local function updateModules()
             end
         end
     end
-    server.game_check = server.game_check - UPDATE_TICKS
+    server.game_check = server.game_check - cfg.UPDATE_TICKS
+
+    local str = "Server Tick: "..server.game_check.."\n\0"
+    local buf = ffi.new( "char[?]", #str, str )
+    cfg.pipeWrite(pipeFDs[cfg.PIPE_WriteEnd], buf, #str)
 end
 
-local function runModules() 
+local function runModules( pipeFDs ) 
 
-    timer.setInterval( UPDATE_RATE, updateModules )
+    timer.setInterval( cfg.UPDATE_RATE, updateModules, pipeFDs )
 end 
 
 ---------------------------------------------------------------------------------
