@@ -160,6 +160,31 @@ end
 
 ---------------------------------------------------------------------------------
 
+local DEBUG_LEVEL_INFO      = 1
+local DEBUG_LEVEL_WARN      = 2
+local DEBUG_LEVEL_ERROR     = 3
+local DEBUG_LEVEL_STR = {
+    "INFO",
+    "WARN",
+    "ERROR",
+}
+
+gDebugLevel = 1
+
+local function setdebug( level )
+    gDebugLevel = level
+end 
+
+local function debug( str, level )
+    local level = level or 1
+
+    if level >= gDebugLevel then 
+        p("["..DEBUG_LEVEL_STR[level].."] "..string.format("%s\n", tostring(str) ))
+    end
+end
+
+---------------------------------------------------------------------------------
+
 return {
     ls          = ls, 
     readall     = readall,
@@ -176,6 +201,9 @@ return {
     sendhtml    = sendhtml,
     senddata    = senddata,
     sendpreflight = sendpreflight,
+
+    debug       = debug,
+    setdebug    = setdebug,
 }
 
 ---------------------------------------------------------------------------------

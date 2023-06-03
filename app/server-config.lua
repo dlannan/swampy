@@ -2,14 +2,6 @@
 -- Store general server info here
 ---------------------------------------------------------------------------------
 
-local ffi = require("ffi")
-ffi.cdef[[
-    int open( int handle );
-    int read( int handle, char * buffer, int size );
-    int write( int handle, char * buffer, int size );
-    int close( int handle );
-]]
-
 ---------------------------------------------------------------------------------
 
 local UPDATE_RATE   = 100
@@ -18,21 +10,20 @@ local UPDATE_RATE   = 100
 
 return {
 
-    pipeOpen        = ffi.C.open,
-    pipeRead        = ffi.C.read,
-    pipeWrite       = ffi.C.write,
-    pipeClose       = ffi.C.close,
     ---------------------------------------------------------------------------------
 
-    SERVER_IP       = "0.0.0.0",
-    API_VERSION     = "/api/v1",
+    SERVER_IP           = "0.0.0.0",
+    API_VERSION         = "/api/v1",
 
-    PORT            = 5000,
-    PORT_WEB        = 5050,
+    PORT                = 5000,
+    PORT_WEB            = 5443,
 
 
-    PIPE_ReadEnd    = 0,
-    PIPE_WriteEnd   = 1,
+    PIPE_ReadRouter     = 0,
+    PIPE_WriteRouter    = 1,
+
+    PIPE_ReadHttps      = 2,
+    PIPE_WriteHttps     = 3,
 
     ---------------------------------------------------------------------------------
     -- Data server config

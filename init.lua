@@ -14,8 +14,9 @@ local ffi = require("ffi")
 ffi.cdef[[
     int getpid();
     int fork();
-    int pipe(int *pipes);
 ]]
+
+local pipe = require("lua.pipe")
 
 ---------------------------------------------------------------------------------
 
@@ -26,10 +27,11 @@ local PID           = ffi.C.getpid()
 local CHILD_PID     = -1
 
 ---------------------------------------------------------------------------------
-
-local pipeFDs = ffi.new("int[2]")
-
-if (ffi.C.pipe( pipeFDs) < 0) then 
+-- We need two channels like so:
+--    Proc1                 Proc2 
+--    WriteOutPipe ---->  ReadinPipe
+--    ReadInPipe  <----   WriteOutPipe
+if (pipe.init(2) == nil) then 
     print("[Error] Unable to allocate pipes.")
     return 
 end 
@@ -43,13 +45,13 @@ local newPID = ffi.C.getpid()
 -- If the router process then...
 if(newPID == PID) then
     local router = require("app.router")
-    router.run(cfg.PORT, pipeFDs)
+    router.run(cfg.PORT)
 -- if the Child Webserver process
 else 
     CHILD_PID = newPID
     -- Create an internal random port for admin httpserver
     local httpsserver   = require("app.httpsserver")
-    httpsserver.run(cfg.PORT_WEB, pipeFDs)
+    httpsserver.run(cfg.PORT_WEB)
 end
 
 ---------------------------------------------------------------------------------

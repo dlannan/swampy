@@ -17,6 +17,7 @@ local games     = require "app.gameserver"
 local binser    = require "lua.binser"
 
 local cfg       = require("app.server-config")
+local pipe      = require("lua.pipe")
 
 -- Current user profile connection state
 local CONNECT_STATE = {
@@ -657,13 +658,22 @@ local function updateModules(pipeFDs)
     end
     server.game_check = server.game_check - cfg.UPDATE_TICKS
 
-    local str = "Server Tick: "..server.game_check.."\n\0"
-    local buf = ffi.new( "char[?]", #str, str )
-    cfg.pipeWrite(pipeFDs[cfg.PIPE_WriteEnd], buf, #str)
+    -- local ok, temp = pipe.read(cfg.PIPE_ReadRouter, 16)
+    -- if(ok > 6 and temp == "ServerOk") then 
+
+    --     local str = "Server Tick: "..string.format("%.1f", server.game_check)
+    --     pipe.write(cfg.PIPE_WriteHttps, str)
+    --     p("[Pipe Read Data] "..temp)
+    -- end
 end
 
 local function runModules( pipeFDs ) 
 
+    pipe.close(cfg.PIPE_ReadHttps)
+    pipe.close(cfg.PIPE_WriteRouter)
+
+    local str = "Server Tick: "..string.format("%.1f", server.game_check)
+    pipe.write(cfg.PIPE_WriteHttps, str)
     timer.setInterval( cfg.UPDATE_RATE, updateModules, pipeFDs )
 end 
 

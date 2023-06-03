@@ -38,6 +38,7 @@ local utils     = require("lua.utils")
 local timer     = require "deps.timer"
 
 local cfg       = require("app.server-config")
+local pipe      = require("lua.pipe")
 
 ---------------------------------------------------------------------------------
 
@@ -138,19 +139,21 @@ function onRequest(req, res)
 end
 
 ---------------------------------------------------------------------------------
-local buf = ffi.new("char[?]", 32)
-local function checkWebServer( pipeFDs )
+
+local function checkWebServer()
 
     -- Do a check on the webserver. If its not closed tell it to close.
-    ffi.fill(buf, 32)
-    local ok = cfg.pipeRead(pipeFDs[cfg.PIPE_ReadEnd], buf, 16)
-    local line = ffi.string(buf, ok)
-    p("[Pipe Read] "..ok.."  "..line)
+    -- local ok, line = pipe.read(cfg.PIPE_ReadHttps, 32)
+    -- if( ok > 0 ) then 
+    --     p("[Pipe Read] "..ok.."  "..line)
+    -- end
+    -- p("[Complete] ------------>")
+    ok = pipe.write(cfg.PIPE_WriteRouter, "ServerOk")
 end
 
 ---------------------------------------------------------------------------------
 
-local function run(port, pipeFDs)
+local function run(port)
 
     ---------------------------------------------------------------------------------
     -- Need to auto update keys from lets encrypt
@@ -162,7 +165,9 @@ local function run(port, pipeFDs)
     p("Router listening at https://"..cfg.SERVER_IP..":"..port.."/")
 
     -- Watch this webserver. If it dies, then restart it.
-    timer.setInterval( 1000, checkWebServer, pipeFDs )
+    pipe.close(cfg.PIPE_WriteHttps)
+    pipe.close(cfg.PIPE_ReadRouter)
+    timer.setInterval( 1000, checkWebServer )
     
     -- Need to catch sig and close (for proper shutdown)
     --tcpserve.close()
@@ -172,7 +177,7 @@ local function run(port, pipeFDs)
     -- tcpserve.runModules()
 
 
-    print("Started...")
+    print("Started router...")
 end
 
 ---------------------------------------------------------------------------------

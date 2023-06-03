@@ -231,13 +231,14 @@ function onRequest(req, res)
 	end);
 end
 
+---------------------------------------------------------------------------------
 
-local function run(port, pipeFDs)
+local function run(port)
 
     ---------------------------------------------------------------------------------
     -- Need to auto update keys from lets encrypt
-    local key = fs.readFileSync("./keys/privkey.pem")
-    local cert = fs.readFileSync("./keys/fullchain.pem")
+    local key = fs.readFileSync(pathJoin("./keys", "privkey.pem"))
+    local cert = fs.readFileSync(pathJoin("./keys", "fullchain.pem"))
 
     ---------------------------------------------------------------------------------
     https.createServer({ key = key, cert = cert }, onRequest):listen(port)
@@ -247,9 +248,9 @@ local function run(port, pipeFDs)
     --tcpserve.close()
     ---------------------------------------------------------------------------------
 
-    tcpserve.runModules( pipeFDs )
+    tcpserve.runModules( )
 
-    print("Started...")
+    print("Started server...")
 end
 
 ---------------------------------------------------------------------------------
